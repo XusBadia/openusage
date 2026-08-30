@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import OpenUsageMobileCore
 
 struct UsageHistoryLoadResult: Sendable {
     var documents: [UsageHistoryDocument]
@@ -151,10 +152,12 @@ actor ICloudUsageHistoryFileStore: UsageHistoryFileStoring {
 @Observable
 final class ICloudUsageSyncStore {
     private static let enabledKey = "openusage.icloudSync.enabled.v1"
+    private static let mobileStatusEnabledKey = "openusage.icloudSync.mobileStatus.enabled.v1"
     private static let deviceIDKey = "openusage.icloudSync.deviceID.v1"
 
     private let defaults: UserDefaults
     private let fileStore: any UsageHistoryFileStoring
+    private let mobileFileStore: any MobileUsageFileStoring
     private let identityError: String?
     private let dataStore: WidgetDataStore
     private let writeDebounce: Duration
@@ -173,9 +176,19 @@ final class ICloudUsageSyncStore {
             Task { await applyEnabledChange() }
         }
     }
+    /// A separate opt-in because existing iCloud users consented only to daily token and spend history.
+    var mobileStatusEnabled: Bool {
+        didSet {
+            guard mobileStatusEnabled != oldValue else { return }
+            defaults.set(mobileStatusEnabled, forKey: Self.mobileStatusEnabledKey)
+            Task { await applyMobileStatusEnabledChange() }
+        }
+    }
     private(set) var isSyncing = false
     private var operationError: String?
     var serviceError: String? { operationError ?? identityError }
+    private(set) var mobileStatusError: String?
+    private(set) var mobileStatusUpdatedAt: Date?
     private(set) var invalidFileMessages: [String] = []
     private(set) var documents: [UsageHistoryDocument] = []
 
@@ -183,6 +196,7 @@ final class ICloudUsageSyncStore {
         dataStore: WidgetDataStore,
         defaults: UserDefaults = .standard,
         fileStore: any UsageHistoryFileStoring = ICloudUsageHistoryFileStore(),
+        mobileFileStore: any MobileUsageFileStoring = ICloudMobileUsageFileStore(),
         deviceIDStore: any ICloudDeviceIDStoring = KeychainICloudDeviceIDStore(),
         writeDebounce: Duration = .seconds(3),
         observesMetadataChanges: Bool = true
@@ -190,6 +204,7 @@ final class ICloudUsageSyncStore {
         self.dataStore = dataStore
         self.defaults = defaults
         self.fileStore = fileStore
+        self.mobileFileStore = mobileFileStore
         self.writeDebounce = writeDebounce
         self.observesMetadataChanges = observesMetadataChanges
         let identity = Self.resolveDeviceID(defaults: defaults, store: deviceIDStore)
@@ -197,9 +212,13 @@ final class ICloudUsageSyncStore {
         self.identityError = identity.error
         self.deviceName = Host.current().localizedName ?? ProcessInfo.processInfo.hostName
         self.enabled = defaults.bool(forKey: Self.enabledKey)
+        self.mobileStatusEnabled = defaults.bool(forKey: Self.mobileStatusEnabledKey)
         dataStore.onLocalHistoryChanged = { [weak self] in self?.scheduleWrite() }
         if enabled {
             Task { await applyEnabledChange() }
+        }
+        if mobileStatusEnabled {
+            Task { await applyMobileStatusEnabledChange() }
         }
     }
 
@@ -212,13 +231,13 @@ final class ICloudUsageSyncStore {
     }
 
     func scheduleWrite() {
-        guard enabled else { return }
+        guard enabled || mobileStatusEnabled else { return }
         writeTask?.cancel()
         writeTask = Task { [weak self] in
             guard let self else { return }
             try? await Task.sleep(for: writeDebounce)
             guard !Task.isCancelled else { return }
-            await writeNow()
+            await writeEnabledData()
         }
     }
 
@@ -226,7 +245,7 @@ final class ICloudUsageSyncStore {
         if enabled {
             startObserving()
             await reload()
-            await writeNow()
+            await writeHistoryNow()
         } else {
             writeTask?.cancel()
             stopObserving()
@@ -242,7 +261,27 @@ final class ICloudUsageSyncStore {
         }
     }
 
-    private func writeNow() async {
+    private func applyMobileStatusEnabledChange() async {
+        if mobileStatusEnabled {
+            await writeMobileStatusNow()
+        } else {
+            do {
+                try await mobileFileStore.delete(deviceID: deviceID)
+                mobileStatusError = nil
+                mobileStatusUpdatedAt = nil
+            } catch {
+                mobileStatusError = error.localizedDescription
+                AppLog.warn(.config, "iCloud mobile status disable failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func writeEnabledData() async {
+        if enabled { await writeHistoryNow() }
+        if mobileStatusEnabled { await writeMobileStatusNow() }
+    }
+
+    private func writeHistoryNow() async {
         guard enabled else { return }
         await withSyncActivity {
             let document = dataStore.localHistoryDocument(
@@ -261,6 +300,28 @@ final class ICloudUsageSyncStore {
                 await reload()
             } catch {
                 report(error, context: "write")
+            }
+        }
+    }
+
+    private func writeMobileStatusNow() async {
+        guard mobileStatusEnabled else { return }
+        await withSyncActivity {
+            let document = dataStore.localMobileUsageDocument(
+                deviceID: deviceID,
+                deviceName: deviceName
+            )
+            do {
+                try await mobileFileStore.write(document)
+                guard mobileStatusEnabled else {
+                    try await mobileFileStore.delete(deviceID: deviceID)
+                    return
+                }
+                mobileStatusError = nil
+                mobileStatusUpdatedAt = document.updatedAt
+            } catch {
+                mobileStatusError = error.localizedDescription
+                AppLog.warn(.config, "iCloud mobile status write failed: \(error.localizedDescription)")
             }
         }
     }

@@ -1,4 +1,5 @@
 import XCTest
+import OpenUsageMobileCore
 @testable import OpenUsage
 
 @MainActor
@@ -152,9 +153,31 @@ final class ICloudUsageSyncStoreTests: XCTestCase {
         XCTAssertEqual(try production.readDeviceID(), "production-id")
     }
 
+    func testMobileStatusHasIndependentConsentAndDeletesOnDisable() async throws {
+        let defaults = makeDefaults("mobile-consent")
+        let historyFileStore = RecordingHistoryFileStore()
+        let mobileFileStore = RecordingMobileUsageFileStore()
+        let sync = makeSync(
+            defaults: defaults,
+            fileStore: historyFileStore,
+            mobileFileStore: mobileFileStore
+        )
+
+        sync.mobileStatusEnabled = true
+        try await waitUntil { await mobileFileStore.writeCount == 1 && sync.mobileStatusUpdatedAt != nil }
+        let historyWriteCount = await historyFileStore.writeCount
+        XCTAssertEqual(historyWriteCount, 0)
+        XCTAssertFalse(sync.enabled)
+
+        sync.mobileStatusEnabled = false
+        try await waitUntil { await mobileFileStore.deletedDeviceIDs.contains(sync.deviceID) }
+        XCTAssertNil(sync.mobileStatusUpdatedAt)
+    }
+
     private func makeSync(
         defaults: UserDefaults,
         fileStore: RecordingHistoryFileStore,
+        mobileFileStore: RecordingMobileUsageFileStore = RecordingMobileUsageFileStore(),
         deviceIDStore: MemoryDeviceIDStore = MemoryDeviceIDStore(),
         writeDebounce: Duration = .seconds(3)
     ) -> ICloudUsageSyncStore {
@@ -168,6 +191,7 @@ final class ICloudUsageSyncStoreTests: XCTestCase {
             dataStore: dataStore,
             defaults: defaults,
             fileStore: fileStore,
+            mobileFileStore: mobileFileStore,
             deviceIDStore: deviceIDStore,
             writeDebounce: writeDebounce,
             observesMetadataChanges: false
@@ -192,6 +216,23 @@ final class ICloudUsageSyncStoreTests: XCTestCase {
             try await Task.sleep(for: .milliseconds(10))
         }
         XCTFail("Condition was not met before timeout")
+    }
+}
+
+private actor RecordingMobileUsageFileStore: MobileUsageFileStoring {
+    private(set) var documents: [MobileUsageDocument] = []
+    private(set) var writeCount = 0
+    private(set) var deletedDeviceIDs: [String] = []
+
+    func write(_ document: MobileUsageDocument) async throws {
+        writeCount += 1
+        documents.removeAll { $0.deviceID == document.deviceID }
+        documents.append(document)
+    }
+
+    func delete(deviceID: String) async throws {
+        deletedDeviceIDs.append(deviceID)
+        documents.removeAll { $0.deviceID == deviceID }
     }
 }
 

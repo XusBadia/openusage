@@ -264,6 +264,7 @@ final class AppContainer {
         // Same as flipping the Settings toggle off: stops syncing and removes this Mac's document
         // from the shared iCloud container (peers keep their own history).
         iCloudSync.enabled = false
+        iCloudSync.mobileStatusEnabled = false
         // Removing an `@AppStorage` key restores its declared default; the Settings screen's
         // `@AppStorage` properties observe the change. New settings must be added here.
         for key in [

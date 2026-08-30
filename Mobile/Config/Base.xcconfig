@@ -1,0 +1,16 @@
+MOBILE_DISPLAY_NAME = Usage Companion
+MOBILE_APP_BUNDLE_ID = com.example.usage-companion
+MOBILE_WIDGET_BUNDLE_ID = com.example.usage-companion.widgets
+MOBILE_DEVELOPMENT_TEAM =
+ICLOUD_CONTAINER_IDENTIFIER = iCloud.com.example.usage-companion
+APP_GROUP_IDENTIFIER = group.com.example.usage-companion
+MOBILE_APP_ICON_NAME = AppIcon
+MOBILE_CODE_SIGN_STYLE = Automatic
+MOBILE_CODE_SIGN_IDENTITY =
+MOBILE_APP_PROVISIONING_PROFILE =
+MOBILE_WIDGET_PROVISIONING_PROFILE =
+MARKETING_VERSION = 0.1.0
+CURRENT_PROJECT_VERSION = 1
+
+// A local file may override signing identifiers without putting developer assets in Git.
+#include? "Local.xcconfig"

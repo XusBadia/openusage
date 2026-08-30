@@ -15,8 +15,8 @@ struct ICloudSyncSettingsSection: View {
                     .foregroundStyle(.secondary)
                     .hoverTooltip(
                         "OpenUsage calculates costs and tokens for Claude, Codex, and other providers "
-                            + "from files stored on each Mac. Account limits, credentials, and logs are "
-                            + "never shared."
+                            + "from files stored on each Mac. Credentials, prompts, logs, account "
+                            + "identities, and raw provider responses are never shared."
                     )
             }
             .padding(.horizontal, 8)
@@ -44,8 +44,55 @@ struct ICloudSyncSettingsSection: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 if sync.enabled { enabledContent }
+
+                Divider()
+
+                HStack(spacing: 7) {
+                    Text("Share Usage With Mobile Devices")
+                    if sync.mobileStatusEnabled, sync.isSyncing, sync.mobileStatusError == nil {
+                        MotionAwareProgressView(controlSize: .small)
+                            .accessibilityLabel("Sharing mobile usage status")
+                    }
+                    Spacer(minLength: 8)
+                    Toggle("", isOn: $sync.mobileStatusEnabled)
+                        .settingsSwitchStyle()
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, density.controlRowPadding)
+
+                Text("Shares sanitized quotas, reset times, balances, and plan names. This is separate from usage history.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, sync.mobileStatusEnabled ? 4 : 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if sync.mobileStatusEnabled { mobileStatusContent }
             }
             .cardSurface()
+        }
+    }
+
+    @ViewBuilder
+    private var mobileStatusContent: some View {
+        if let error = sync.mobileStatusError {
+            inlineNotice(error)
+        } else if let updatedAt = sync.mobileStatusUpdatedAt {
+            TimelineView(.periodic(from: .now, by: 60)) { context in
+                Label("Shared \(relativeAge(updatedAt, now: context.date))", systemImage: "iphone")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else if !sync.isSyncing {
+            Text("Waiting for the first mobile update…")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

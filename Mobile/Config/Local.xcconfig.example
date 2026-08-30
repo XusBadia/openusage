@@ -1,0 +1,11 @@
+// Copy to Local.xcconfig and replace these values with identifiers owned by your Apple Developer Team.
+// Never commit the resulting Local.xcconfig or provisioning profiles.
+MOBILE_DISPLAY_NAME = Usage Companion
+MOBILE_APP_BUNDLE_ID = com.yourcompany.usage-companion
+MOBILE_WIDGET_BUNDLE_ID = com.yourcompany.usage-companion.widgets
+MOBILE_DEVELOPMENT_TEAM = YOURTEAMID
+ICLOUD_CONTAINER_IDENTIFIER = iCloud.com.yourcompany.usage-companion
+APP_GROUP_IDENTIFIER = group.com.yourcompany.usage-companion
+
+// The OpenUsage maintainers can point an authorized build at their official identifiers and brand.
+// Third-party TestFlight builds must follow TRADEMARK.md and use their own product identity.

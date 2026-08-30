@@ -5,9 +5,9 @@ A high-level map of how OpenUsage is put together, for people working on the cod
 
 ## The shape of the app
 
-OpenUsage is a SwiftPM package with a shared module and two thin executables — there is no Xcode project.
-The main executable is a menu-bar app: a SwiftUI interface hosted inside an AppKit status item and panel.
-The code is grouped by role:
+The macOS app is a SwiftPM package with a shared module and two thin executables. The main executable is a
+menu-bar app: a SwiftUI interface hosted inside an AppKit status item and panel. `Mobile/` contains an
+XcodeGen project for the iOS companion and its WidgetKit extension. The code is grouped by role:
 
 - `App/` — startup and the AppKit bridge (status item, panel, the app entry point).
 - `Models/` — the small value types the rest of the app speaks in (`MetricLine`, `WidgetData`, descriptors).
@@ -16,6 +16,9 @@ The code is grouped by role:
 - `Services/` — shared infrastructure (HTTP, the local API, process running).
 - `Support/` — small shared helpers (formatting, parsing, animations).
 - `Views/` — the SwiftUI screens (dashboard, customize, settings, menu-bar strip).
+- `OpenUsageMobileCore/` — the sanitized mobile contract, multi-Mac resolver, history aggregation, and
+  App Group cache shared by the iOS app and widgets.
+- `Mobile/` — the iOS app, widget extension, signing configuration, and generated Xcode project.
 
 ## Composition root
 
@@ -65,7 +68,8 @@ The UI reads from a few observable stores:
   menu bar.
 - `ProviderEnablementStore` — which providers the user has turned on or off.
 - `ICloudUsageSyncStore` — one coordinated, atomic history file per Mac, iCloud metadata notifications,
-  and the visible device/error state. File access is injected for lifecycle and failure tests.
+  mobile snapshot publication, and the visible device/error state. File access is injected for lifecycle
+  and failure tests.
 
 Refresh runs on a timer in `AppContainer`; each pass respects the cache, so the network is only hit once a
 snapshot has actually expired.
@@ -88,6 +92,18 @@ SwiftUI measures each screen's content and drives panel resizing on the same ani
 navigation. Row positions used for drag reordering stay outside observable view state, so scrolling and
 screen transitions don't rebuild their entire lists, and the panel's shadow updates once its size settles.
 Settings stays mounted after its first visit so returning to it reuses its native controls.
+
+## Mobile companion
+
+The Mac remains the only process that contacts providers or reads local credentials. When the user opts
+in, `MobileUsageDocumentBuilder` converts rendered provider snapshots into the smaller
+`openusage.mobile.v1` contract. `ICloudMobileUsageFileStore` writes one document per Mac without changing
+the existing history files.
+
+The iOS app reads mobile and history documents from the shared iCloud container. It resolves each
+provider from the freshest Mac, caches the resolved view in an App Group, and asks WidgetKit to reload.
+Widgets read that cache, so they do not start iCloud coordination or contact a provider. The iOS app is
+read-only and cannot wake a Mac.
 
 ## Platform support
 

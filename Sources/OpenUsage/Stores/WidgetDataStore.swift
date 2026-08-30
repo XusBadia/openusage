@@ -12,16 +12,17 @@ struct StalenessHint: Equatable {
 @MainActor
 @Observable
 final class WidgetDataStore {
-    private let registry: WidgetRegistry
+    /// Internal for the privacy-filtered mobile document builder; UI consumers still receive the store.
+    let registry: WidgetRegistry
     private let providersByID: [String: ProviderRuntime]
     private let cache: ProviderSnapshotCache
     private let defaults: UserDefaults
     /// Whether a provider is currently enabled. Injected so the store consults the single
     /// `ProviderEnablementStore` without owning it; defaults to "all enabled" for tests and previews.
-    private let isProviderEnabled: @MainActor (String) -> Bool
+    let isProviderEnabled: @MainActor (String) -> Bool
     /// The user's widget order (already enablement-filtered) that drives the menu-bar value. Injected
     /// so the store reads `LayoutStore.visiblePlaced` without owning it; defaults to registry order.
-    private let orderedDescriptors: @MainActor () -> [WidgetDescriptor]
+    let orderedDescriptors: @MainActor () -> [WidgetDescriptor]
     /// Clock for the failure-backoff window. Injected so tests can advance time deterministically.
     private let now: () -> Date
     /// Monotonic clock for refresh durations, kept separate from wall time so a clock adjustment cannot

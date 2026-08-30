@@ -6,6 +6,16 @@ iCloud account. A random device ID is kept in the login Keychain so the same Mac
 existing file after app preferences are reset or the app is reinstalled. There is no folder picker,
 pairing code, or separate account.
 
+**Share Usage With Mobile Devices** is a separate setting and is also off by default. A Mac with this
+setting enabled writes a read-only mobile snapshot to `OpenUsage/Mobile/v1/<device-id>.json`. The iOS
+companion picks the newest copy of each provider across the available Macs. Turning history sync on does
+not turn mobile sharing on.
+
+The mobile snapshot contains numeric quotas, reset dates, balances, plan names, source freshness, and a
+coarse availability status. It excludes credentials, email addresses, account and organization IDs,
+prompts, logs, model names, raw errors, and provider responses. Turning mobile sharing off deletes that
+Mac's mobile snapshot. Existing history sync behavior does not change.
+
 The file contains normalized daily tokens and spend, model totals, and unknown-model names for sources
 that are local to one Mac: Claude, Codex, Grok, and OpenCode. It also includes Claude account and
 organization identities when available, but never credentials, account limits, raw logs, or provider
@@ -57,6 +67,12 @@ Set `ICLOUD_PROVISIONING_PROFILE=/path/to/profile.mobileprovision` only when you
 that automatic selection. An explicit missing path fails the build instead of silently producing an
 app without iCloud access.
 
+Fork builds can set `BUNDLE_ID` and `ICLOUD_CONTAINER_ID` when invoking `script/build_and_run.sh`.
+Both identifiers and the selected provisioning profile must belong to the same Apple team. Use the
+same iCloud container in the companion iOS build so the Mac and phone see the same documents.
+When using a Developer ID profile for an end-to-end production-container test, also set
+`ICLOUD_ENTITLEMENTS_TEMPLATE=script/OpenUsage.release.entitlements.plist`.
+
 The release workflow reads the base64-encoded `MAC_APP_DIRECT` profile from the repository Actions
 secret `APPLE_DEVELOPER_ID_ICLOUD_PROFILE`. Keep the original provisioning profiles and signing `.p12`
 in a password manager, never in the repository. A provisioning profile contains certificates and
@@ -79,3 +95,6 @@ fi
 No file is expected when sync is off, the app is signed without the matching profile, or the first
 write has not completed. The Settings error and app log distinguish those cases; the spinner only
 appears while an iCloud read or write is actually in progress.
+
+The iOS companion uses identifiers owned by the team that signs it. See [iOS companion](ios-app.md) for
+the Xcode project, App Group, iCloud container, and TestFlight setup.

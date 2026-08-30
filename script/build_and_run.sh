@@ -14,6 +14,11 @@ set -euo pipefail
 # Usage: script/build_and_run.sh [run|build|logs|verify]
 # Env:   CODESIGN_IDENTITY  override signing identity (exact name or hash)
 #        CONFIG             "release" (default) or "debug"
+#        BUNDLE_ID          override the development bundle identifier
+#        ICLOUD_CONTAINER_ID override the iCloud Documents container; use a container owned by the
+#                         same Apple team as BUNDLE_ID and the provisioning profile
+#        ICLOUD_ENTITLEMENTS_TEMPLATE override the entitlement template; use the release template
+#                         with a Developer ID provisioning profile
 #        ICLOUD_PROVISIONING_PROFILE  optional override for the development provisioning profile;
 #                         otherwise the newest matching installed profile is selected automatically
 
@@ -23,7 +28,7 @@ CONFIG="${CONFIG:-release}"
 TARGET_NAME="OpenUsage"                 # SwiftPM target / binary name
 APP_DISPLAY="OpenUsage"                 # user-facing app name
 BUNDLE_ID="${BUNDLE_ID:-com.robinebers.openusage.dev}"
-ICLOUD_CONTAINER_ID="iCloud.com.robinebers.openusage.dev"
+ICLOUD_CONTAINER_ID="${ICLOUD_CONTAINER_ID:-iCloud.com.robinebers.openusage.dev}"
 MIN_SYSTEM_VERSION="15.0"
 APP_VERSION="0.7.0"
 APP_BUILD="0.7.0"
@@ -39,7 +44,7 @@ APP_BINARY="$APP_MACOS/$TARGET_NAME"
 CLI_BINARY="$APP_HELPERS/openusage"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
 RESOURCE_BUNDLE_NAME="${TARGET_NAME}_${TARGET_NAME}.bundle"
-ENTITLEMENTS="$ROOT_DIR/script/OpenUsage.dev.entitlements.plist"
+ENTITLEMENTS="${ICLOUD_ENTITLEMENTS_TEMPLATE:-$ROOT_DIR/script/OpenUsage.dev.entitlements.plist}"
 SIGN_ENTITLEMENTS="$ROOT_DIR/script/OpenUsage.local.entitlements.plist"
 
 pkill -x "$TARGET_NAME" >/dev/null 2>&1 || true
@@ -148,7 +153,7 @@ cat >"$INFO_PLIST" <<PLIST
   <true/>
   <key>NSUbiquitousContainers</key>
   <dict>
-    <key>iCloud.com.robinebers.openusage.dev</key>
+    <key>$ICLOUD_CONTAINER_ID</key>
     <dict>
       <key>NSUbiquitousContainerIsDocumentScopePublic</key>
       <false/>

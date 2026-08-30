@@ -8,7 +8,8 @@ let package = Package(
     ],
     products: [
         .executable(name: "OpenUsage", targets: ["OpenUsageApp"]),
-        .executable(name: "openusage-cli", targets: ["OpenUsageCLI"])
+        .executable(name: "openusage-cli", targets: ["OpenUsageCLI"]),
+        .library(name: "OpenUsageMobileCore", targets: ["OpenUsageMobileCore"])
     ],
     dependencies: [
         // The de-facto standard recorder + global hotkey for Mac apps (System Settings-style field).
@@ -23,6 +24,7 @@ let package = Package(
         .target(
             name: "OpenUsage",
             dependencies: [
+                "OpenUsageMobileCore",
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
                 .product(name: "Sparkle", package: "Sparkle"),
                 .product(name: "PostHog", package: "posthog-ios")
@@ -54,9 +56,16 @@ let package = Package(
                 .swiftLanguageMode(.v6)
             ]
         ),
+        .target(
+            name: "OpenUsageMobileCore",
+            path: "Sources/OpenUsageMobileCore",
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
         .testTarget(
             name: "OpenUsageTests",
-            dependencies: ["OpenUsage"],
+            dependencies: ["OpenUsage", "OpenUsageMobileCore"],
             path: "Tests/OpenUsageTests",
             swiftSettings: [
                 .swiftLanguageMode(.v6)
@@ -66,6 +75,14 @@ let package = Package(
             name: "OpenUsageCLITests",
             dependencies: ["OpenUsageCLI"],
             path: "Tests/OpenUsageCLITests",
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        .testTarget(
+            name: "OpenUsageMobileCoreTests",
+            dependencies: ["OpenUsageMobileCore"],
+            path: "Tests/OpenUsageMobileCoreTests",
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]

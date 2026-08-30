@@ -9,6 +9,9 @@ node_modules/
 # Local environment files
 .env
 .env.*
+Mobile/Config/Local.xcconfig
+Mobile/Config/ExportOptions.plist
+Mobile/.derivedData*/
 
 # Signing and notarization material
 *.p12
