@@ -15,9 +15,14 @@ enum WidgetDataAccess {
         MobileSharedSnapshotStore(suiteName: appGroupIdentifier).hidesFinancialValues
     }
 
+    static func providers() -> [ResolvedMobileProvider] {
+        let store = MobileSharedSnapshotStore(suiteName: appGroupIdentifier)
+        return store.providerDisplaySettings.visibleProviders(from: store.load()?.providers ?? [])
+    }
+
     static func provider(id: String?) -> ResolvedMobileProvider? {
-        let providers = snapshot()?.providers ?? []
+        let providers = providers()
         guard let id else { return providers.first }
-        return providers.first { $0.provider.providerID == id } ?? providers.first
+        return providers.first { $0.provider.providerID == id }
     }
 }

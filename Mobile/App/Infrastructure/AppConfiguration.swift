@@ -2,7 +2,7 @@ import Foundation
 
 enum AppConfiguration {
     static var displayName: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Usage Companion"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "OpenUsage"
     }
 
     static var appGroupIdentifier: String {
@@ -24,5 +24,9 @@ enum AppConfiguration {
         case "settings": return 2
         default: return 0
         }
+    }
+
+    static var previewsProviderList: Bool {
+        ProcessInfo.processInfo.arguments.contains("-preview-providers")
     }
 }

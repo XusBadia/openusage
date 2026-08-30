@@ -1,3 +1,4 @@
+import OpenUsageMobileCore
 import SwiftUI
 
 struct SettingsView: View {
@@ -6,6 +7,23 @@ struct SettingsView: View {
     var body: some View {
         @Bindable var store = store
         List {
+            Section("Display") {
+                NavigationLink {
+                    ProviderCustomizationView()
+                } label: {
+                    LabeledContent {
+                        Text("\(store.providers.count) of \(store.customizableProviders.count)")
+                            .foregroundStyle(.secondary)
+                    } label: {
+                        Label("Providers", systemImage: "square.3.layers.3d")
+                    }
+                }
+
+                Text("Your provider selection and order are shared with widgets.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Synchronization") {
                 Button {
                     Task { await store.refresh() }
@@ -69,6 +87,63 @@ struct SettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Settings")
+    }
+}
+
+struct ProviderCustomizationView: View {
+    @Environment(MobileDashboardStore.self) private var store
+    @State private var editMode: EditMode = .active
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(store.customizableProviders) { source in
+                    providerRow(source)
+                }
+                .onMove(perform: store.moveProviders)
+            } header: {
+                Text("Provider Order")
+            } footer: {
+                Text("Drag to reorder. Hidden providers stay synced and can be shown again at any time.")
+            }
+
+            if store.providerListIsCustomized {
+                Section {
+                    Button("Reset Provider List", action: store.resetProviderDisplaySettings)
+                } footer: {
+                    Text("Shows every provider and restores the order published by your Mac.")
+                }
+            }
+        }
+        .environment(\.editMode, $editMode)
+        .navigationTitle("Providers")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func providerRow(_ source: ResolvedMobileProvider) -> some View {
+        let provider = source.provider
+        return HStack(spacing: 12) {
+            ProviderIconView(providerID: provider.providerID, size: 34)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(provider.displayName)
+                    .font(.body.weight(.medium))
+                if let plan = provider.plan {
+                    Text(plan)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            Toggle(
+                "Show \(provider.displayName)",
+                isOn: Binding(
+                    get: { !store.providerDisplaySettings.hiddenProviderIDs.contains(provider.providerID) },
+                    set: { store.setProvider(provider.providerID, isVisible: $0) }
+                )
+            )
+            .labelsHidden()
+        }
+        .accessibilityElement(children: .contain)
     }
 }
 

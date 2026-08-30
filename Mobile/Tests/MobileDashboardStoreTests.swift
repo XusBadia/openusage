@@ -26,14 +26,55 @@ final class MobileDashboardStoreTests: XCTestCase {
         XCTAssertEqual(store.devices.first?.publishesHistory, true)
     }
 
-    private func usageDocument(now: Date) -> MobileUsageDocument {
-        let provider = MobileProviderSnapshot(
-            providerID: "claude",
-            displayName: "Claude",
+    func testProviderVisibilityAndOrderPersistForWidgets() async {
+        let now = Date(timeIntervalSince1970: 2_000_000_000)
+        let suiteName = "OpenUsageTests.Mobile.Display.\(UUID().uuidString)"
+        defer { UserDefaults().removePersistentDomain(forName: suiteName) }
+        let reader = TestMobileReader(result: .init(
+            usageDocuments: [usageDocument(now: now, includesCodex: true)],
+            historyDocuments: [historyDocument(now: now, includesCodex: true)],
+            invalidFileCount: 0
+        ))
+        let store = MobileDashboardStore(
+            reader: reader,
+            appGroupIdentifier: suiteName,
+            usesPreviewData: false
+        )
+        await store.refresh()
+
+        store.moveProviders(fromOffsets: IndexSet(integer: 1), toOffset: 0)
+        store.setProvider("claude", isVisible: false)
+
+        XCTAssertEqual(store.customizableProviders.map(\.provider.providerID), ["codex", "claude"])
+        XCTAssertEqual(store.providers.map(\.provider.providerID), ["codex"])
+        XCTAssertEqual(store.totals(for: nil).first?.totalTokens, 10)
+        let sharedSettings = MobileSharedSnapshotStore(suiteName: suiteName).providerDisplaySettings
+        XCTAssertEqual(sharedSettings.providerOrder, ["codex", "claude"])
+        XCTAssertEqual(sharedSettings.hiddenProviderIDs, ["claude"])
+    }
+
+    private func usageDocument(now: Date, includesCodex: Bool = false) -> MobileUsageDocument {
+        let claude = provider(id: "claude", name: "Claude", now: now)
+        let codex = provider(id: "codex", name: "Codex", now: now)
+        let order = includesCodex ? ["claude", "codex"] : ["claude"]
+        let providers = includesCodex ? ["claude": claude, "codex": codex] : ["claude": claude]
+        return MobileUsageDocument(
+            deviceID: "mac-a",
+            deviceName: "Mac",
+            updatedAt: now,
+            providerOrder: order,
+            providers: providers
+        )
+    }
+
+    private func provider(id: String, name: String, now: Date) -> MobileProviderSnapshot {
+        MobileProviderSnapshot(
+            providerID: id,
+            displayName: name,
             refreshedAt: now,
             metrics: [
                 MobileUsageMetric(
-                    id: "claude.session",
+                    id: "\(id).session",
                     label: "Session",
                     presentation: .progress,
                     used: 20,
@@ -42,28 +83,29 @@ final class MobileDashboardStoreTests: XCTestCase {
                 )
             ]
         )
-        return MobileUsageDocument(
-            deviceID: "mac-a",
-            deviceName: "Mac",
-            updatedAt: now,
-            providerOrder: ["claude"],
-            providers: ["claude": provider]
-        )
     }
 
-    private func historyDocument(now: Date) -> MobileUsageHistoryDocument {
-        MobileUsageHistoryDocument(
+    private func historyDocument(now: Date, includesCodex: Bool = false) -> MobileUsageHistoryDocument {
+        var providers = [
+            "claude": MobileProviderUsageHistory(
+                series: MobileDailyUsageSeries(
+                    daily: [MobileDailyUsageEntry(date: "2033-05-18", totalTokens: 42, costUSD: 1)]
+                )
+            )
+        ]
+        if includesCodex {
+            providers["codex"] = MobileProviderUsageHistory(
+                series: MobileDailyUsageSeries(
+                    daily: [MobileDailyUsageEntry(date: "2033-05-18", totalTokens: 10, costUSD: 2)]
+                )
+            )
+        }
+        return MobileUsageHistoryDocument(
             schema: "openusage.history.v1",
             deviceID: "mac-a",
             deviceName: "Mac",
             updatedAt: now,
-            providers: [
-                "claude": MobileProviderUsageHistory(
-                    series: MobileDailyUsageSeries(
-                        daily: [MobileDailyUsageEntry(date: "2033-05-18", totalTokens: 42, costUSD: 1)]
-                    )
-                )
-            ]
+            providers: providers
         )
     }
 }

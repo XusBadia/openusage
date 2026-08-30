@@ -1,27 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <defs>
-    <linearGradient id="background" x1="100" y1="72" x2="924" y2="952" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#1B2033"/>
-      <stop offset="1" stop-color="#090B12"/>
+    <linearGradient id="background" x1="140" y1="80" x2="860" y2="944" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#62A5FF"/>
+      <stop offset="0.48" stop-color="#3282F8"/>
+      <stop offset="1" stop-color="#1D6FF4"/>
     </linearGradient>
-    <linearGradient id="lavender" x1="0" y1="250" x2="0" y2="790" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#C6BBFF"/>
-      <stop offset="1" stop-color="#8777EA"/>
+    <linearGradient id="face" x1="360" y1="280" x2="650" y2="760" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E7F1FF"/>
     </linearGradient>
-    <filter id="shadow" x="-50%" y="-30%" width="200%" height="180%">
-      <feDropShadow dx="0" dy="28" stdDeviation="32" flood-color="#6B59D4" flood-opacity="0.28"/>
+    <filter id="soft-shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="24" stdDeviation="20" flood-color="#0755D8" flood-opacity="0.34"/>
     </filter>
   </defs>
   <rect width="1024" height="1024" fill="url(#background)"/>
-  <circle cx="204" cy="180" r="264" fill="#FFFFFF" opacity="0.035"/>
-  <g filter="url(#shadow)" fill="url(#lavender)">
-    <rect x="248" y="500" width="132" height="288" rx="66"/>
-    <rect x="446" y="236" width="132" height="552" rx="66"/>
-    <rect x="644" y="380" width="132" height="408" rx="66"/>
-  </g>
-  <g fill="#FFFFFF" opacity="0.20">
-    <rect x="268" y="520" width="92" height="36" rx="18"/>
-    <rect x="466" y="256" width="92" height="36" rx="18"/>
-    <rect x="664" y="400" width="92" height="36" rx="18"/>
+  <g fill="url(#face)" filter="url(#soft-shadow)">
+    <path fill-rule="evenodd" d="M512 194C687.6 194 830 336.4 830 512S687.6 830 512 830 194 687.6 194 512 336.4 194 512 194Zm0 72c-135.9 0-246 110.1-246 246s110.1 246 246 246 246-110.1 246-246-110.1-246-246-246Z"/>
+    <circle cx="512" cy="338" r="31"/>
+    <circle cx="338" cy="512" r="31"/>
+    <circle cx="686" cy="512" r="31"/>
+    <circle cx="389" cy="389" r="31"/>
+    <path d="M625 372c17-12 39 9 27 26-65 93-103 145-115 157-29 29-76 29-105 0s-29-76 0-105c20-20 71-59 193-78Z"/>
   </g>
 </svg>

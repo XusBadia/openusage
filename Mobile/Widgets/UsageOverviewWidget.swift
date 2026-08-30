@@ -6,11 +6,17 @@ struct UsageOverviewEntry: TimelineEntry {
     var date: Date
     var providers: [ResolvedMobileProvider]
     var hidesFinancialValues: Bool
+    var hasSyncedProviders: Bool
 }
 
 struct UsageOverviewTimelineProvider: TimelineProvider {
     func placeholder(in context: Context) -> UsageOverviewEntry {
-        UsageOverviewEntry(date: .now, providers: WidgetPreviewFixtures.providers(), hidesFinancialValues: false)
+        UsageOverviewEntry(
+            date: .now,
+            providers: WidgetPreviewFixtures.providers(),
+            hidesFinancialValues: false,
+            hasSyncedProviders: true
+        )
     }
 
     func getSnapshot(in context: Context, completion: @escaping (UsageOverviewEntry) -> Void) {
@@ -22,10 +28,12 @@ struct UsageOverviewTimelineProvider: TimelineProvider {
     }
 
     private func entry() -> UsageOverviewEntry {
-        UsageOverviewEntry(
+        let snapshot = WidgetDataAccess.snapshot()
+        return UsageOverviewEntry(
             date: .now,
-            providers: Array((WidgetDataAccess.snapshot()?.providers ?? []).prefix(3)),
-            hidesFinancialValues: WidgetDataAccess.hidesFinancialValues
+            providers: Array(WidgetDataAccess.providers().prefix(3)),
+            hidesFinancialValues: WidgetDataAccess.hidesFinancialValues,
+            hasSyncedProviders: !(snapshot?.providers.isEmpty ?? true)
         )
     }
 }
@@ -60,7 +68,10 @@ private struct UsageOverviewWidgetView: View {
             }
             if entry.providers.isEmpty {
                 Spacer()
-                Label("Waiting for your Mac", systemImage: "icloud.slash")
+                Label(
+                    entry.hasSyncedProviders ? "No providers selected" : "Waiting for your Mac",
+                    systemImage: entry.hasSyncedProviders ? "slider.horizontal.3" : "icloud.slash"
+                )
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Spacer()

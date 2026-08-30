@@ -22,7 +22,7 @@ struct ProviderWidgetEntityQuery: EntityQuery, EnumerableEntityQuery {
     func allEntities() async throws -> [ProviderWidgetEntity] { entities() }
 
     private func entities() -> [ProviderWidgetEntity] {
-        (WidgetDataAccess.snapshot()?.providers ?? []).map {
+        WidgetDataAccess.providers().map {
             ProviderWidgetEntity(id: $0.provider.providerID, name: $0.provider.displayName)
         }
     }

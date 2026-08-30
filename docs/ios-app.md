@@ -12,7 +12,8 @@ OpenUsage Settings. History sync and mobile status sharing use separate consent 
 
 - `Mobile/project.yml` is the source for the Xcode project.
 - `Mobile/App/` contains the iPhone and iPad app.
-- `Mobile/Widgets/` contains a configurable small provider widget and a medium overview widget.
+- `Mobile/Widgets/` contains a configurable small provider widget and a medium overview widget. Provider
+  visibility and order are stored in the App Group, so the app and both widgets use the same selection.
 - `Sources/OpenUsageMobileCore/` contains the shared document contract and resolvers.
 - `Mobile/Config/` contains build identifiers and entitlements.
 
@@ -29,8 +30,8 @@ The checked-in project lets contributors open the app without installing XcodeGe
 
 ## Local identifiers
 
-The repository defaults to neutral development identifiers and the name **Usage Companion**. Copy the
-example file and enter values owned by your Apple Developer team:
+The repository defaults to neutral development identifiers and the official **OpenUsage** product name.
+Copy the example file and enter values owned by your Apple Developer team:
 
 ```bash
 cd Mobile/Config
@@ -75,7 +76,8 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test \
 
 Pass `-ui-preview` when launching the simulator build to use deterministic Claude and Codex fixtures.
 Add `-preview-tab history` or `-preview-tab settings` to capture those screens. Production builds ignore
-the preview path unless the process receives the explicit argument.
+the preview path unless the process receives the explicit argument. Add `-preview-providers` to open the
+provider visibility and ordering screen directly for visual QA.
 
 ## TestFlight and branding
 
@@ -84,5 +86,5 @@ team. The bundle ID ties that build to the App Store Connect record. TestFlight 
 upstream maintainers to share our record or certificates.
 
 The source code uses the MIT license. `TRADEMARK.md` reserves the OpenUsage name and logo, so third-party
-builds must keep neutral branding or obtain permission. Upstream maintainers can replace the neutral
-identity with the official name and icon before shipping an official app.
+publishers must replace the default product identity or obtain permission. The default name and icon are
+ready for the OpenUsage maintainers to use in an official build.

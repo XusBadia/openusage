@@ -22,31 +22,38 @@ struct RootView: View {
         .tint(.accentColor)
     }
 
+    @ViewBuilder
     private var dashboard: some View {
-        TabView(selection: $selectedTab) {
+        if AppConfiguration.previewsProviderList {
             NavigationStack {
-                TodayView()
+                ProviderCustomizationView()
             }
-            .tabItem { Label("Today", systemImage: "gauge.with.dots.needle.67percent") }
-            .tag(0)
+        } else {
+            TabView(selection: $selectedTab) {
+                NavigationStack {
+                    TodayView()
+                }
+                .tabItem { Label("Today", systemImage: "gauge.with.dots.needle.67percent") }
+                .tag(0)
 
-            NavigationStack {
-                HistoryView()
-            }
-            .tabItem { Label("History", systemImage: "chart.bar.xaxis") }
-            .tag(1)
+                NavigationStack {
+                    HistoryView()
+                }
+                .tabItem { Label("History", systemImage: "chart.bar.xaxis") }
+                .tag(1)
 
-            NavigationStack {
-                SettingsView()
+                NavigationStack {
+                    SettingsView()
+                }
+                .tabItem { Label("Settings", systemImage: "gearshape") }
+                .tag(2)
             }
-            .tabItem { Label("Settings", systemImage: "gearshape") }
-            .tag(2)
-        }
-        .overlay(alignment: .top) {
-            if let notice = store.refreshNotice {
-                RefreshNoticeBanner(message: notice)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
+            .overlay(alignment: .top) {
+                if let notice = store.refreshNotice {
+                    RefreshNoticeBanner(message: notice)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                }
             }
         }
     }

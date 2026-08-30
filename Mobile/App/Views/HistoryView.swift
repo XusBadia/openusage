@@ -33,6 +33,10 @@ struct HistoryView: View {
         .background(MobilePalette.canvas.ignoresSafeArea())
         .navigationTitle("History")
         .refreshable { await store.refresh() }
+        .onChange(of: store.historyProviderIDs) { _, availableIDs in
+            guard let providerID, !availableIDs.contains(providerID) else { return }
+            self.providerID = nil
+        }
     }
 
     private var controls: some View {

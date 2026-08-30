@@ -1,4 +1,4 @@
-MOBILE_DISPLAY_NAME = Usage Companion
+MOBILE_DISPLAY_NAME = OpenUsage
 MOBILE_APP_BUNDLE_ID = com.example.usage-companion
 MOBILE_WIDGET_BUNDLE_ID = com.example.usage-companion.widgets
 MOBILE_DEVELOPMENT_TEAM =

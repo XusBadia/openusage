@@ -5,6 +5,7 @@ import Foundation
 public struct MobileSharedSnapshotStore: Sendable {
     public static let snapshotKey = "openusage.mobile.sharedSnapshot.v1"
     public static let hideFinancialValuesKey = "openusage.mobile.hideFinancialValues.v1"
+    public static let providerDisplaySettingsKey = "openusage.mobile.providerDisplaySettings.v1"
 
     private let suiteName: String
 
@@ -29,6 +30,19 @@ public struct MobileSharedSnapshotStore: Sendable {
     public var hidesFinancialValues: Bool {
         get { UserDefaults(suiteName: suiteName)?.bool(forKey: Self.hideFinancialValuesKey) ?? false }
         nonmutating set { UserDefaults(suiteName: suiteName)?.set(newValue, forKey: Self.hideFinancialValuesKey) }
+    }
+
+    public var providerDisplaySettings: MobileProviderDisplaySettings {
+        get {
+            guard let data = UserDefaults(suiteName: suiteName)?.data(forKey: Self.providerDisplaySettingsKey)
+            else { return MobileProviderDisplaySettings() }
+            return (try? Self.makeDecoder().decode(MobileProviderDisplaySettings.self, from: data))
+                ?? MobileProviderDisplaySettings()
+        }
+        nonmutating set {
+            let data = try? Self.makeEncoder().encode(newValue)
+            UserDefaults(suiteName: suiteName)?.set(data, forKey: Self.providerDisplaySettingsKey)
+        }
     }
 
     private static func makeEncoder() -> JSONEncoder {

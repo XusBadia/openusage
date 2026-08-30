@@ -8,7 +8,15 @@ struct TodayView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 16) {
                 freshness
-                if let today = store.today {
+                if store.providers.isEmpty {
+                    ContentUnavailableView(
+                        "No Providers Shown",
+                        systemImage: "slider.horizontal.3",
+                        description: Text("Choose the providers you want to see in Settings.")
+                    )
+                    .frame(minHeight: 300)
+                    .cardSurface()
+                } else if let today = store.today {
                     TodaySummaryView(total: today, hidesFinancialValues: store.hidesFinancialValues)
                 }
                 ForEach(store.providers) { source in

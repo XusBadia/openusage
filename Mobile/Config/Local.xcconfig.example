@@ -1,6 +1,6 @@
 // Copy to Local.xcconfig and replace these values with identifiers owned by your Apple Developer Team.
 // Never commit the resulting Local.xcconfig or provisioning profiles.
-MOBILE_DISPLAY_NAME = Usage Companion
+MOBILE_DISPLAY_NAME = OpenUsage
 MOBILE_APP_BUNDLE_ID = com.yourcompany.usage-companion
 MOBILE_WIDGET_BUNDLE_ID = com.yourcompany.usage-companion.widgets
 MOBILE_DEVELOPMENT_TEAM = YOURTEAMID
