@@ -72,7 +72,9 @@ final class MobileDashboardStore {
     }
 
     var providerListIsCustomized: Bool {
-        !providerDisplaySettings.providerOrder.isEmpty || !providerDisplaySettings.hiddenProviderIDs.isEmpty
+        !providerDisplaySettings.providerOrder.isEmpty
+            || !providerDisplaySettings.hiddenProviderIDs.isEmpty
+            || !providerDisplaySettings.metricSettings.isEmpty
     }
 
     var freshestUpdate: Date? {
@@ -159,20 +161,73 @@ final class MobileDashboardStore {
     }
 
     func moveProviders(fromOffsets: IndexSet, toOffset: Int) {
-        var ids = customizableProviders.map(\.provider.providerID)
+        let ids = customizableProviders.map(\.provider.providerID)
+        guard let reordered = Self.reorder(ids, fromOffsets: fromOffsets, toOffset: toOffset) else { return }
+        providerDisplaySettings.providerOrder = reordered
+        persistProviderDisplaySettings()
+    }
+
+    /// `List` drag-and-drop offsets applied to an id list. Returns nil when the drag names no row this
+    /// list actually has, which happens when a refresh lands mid-gesture.
+    private static func reorder(_ ids: [String], fromOffsets: IndexSet, toOffset: Int) -> [String]? {
+        var ids = ids
         let validOffsets = fromOffsets.filter(ids.indices.contains).sorted()
-        guard !validOffsets.isEmpty else { return }
+        guard !validOffsets.isEmpty else { return nil }
         let moving = validOffsets.map { ids[$0] }
         for offset in validOffsets.reversed() { ids.remove(at: offset) }
         let removedBeforeDestination = validOffsets.filter { $0 < toOffset }.count
         let destination = max(0, min(ids.count, toOffset - removedBeforeDestination))
         ids.insert(contentsOf: moving, at: destination)
-        providerDisplaySettings.providerOrder = ids
-        persistProviderDisplaySettings()
+        return ids
     }
 
     func resetProviderDisplaySettings() {
         providerDisplaySettings = MobileProviderDisplaySettings()
+        persistProviderDisplaySettings()
+    }
+
+    // MARK: - Per-provider metrics
+
+    func metricSettings(for providerID: String) -> MobileMetricDisplaySettings {
+        providerDisplaySettings.metricSettings(for: providerID)
+    }
+
+    /// Every metric the Mac published for a provider, in the order this person chose. Hidden metrics stay
+    /// in the list so the customization screen can offer them back.
+    func customizableMetrics(for provider: MobileProviderSnapshot) -> [MobileUsageMetric] {
+        providerDisplaySettings.orderedMetrics(for: provider)
+    }
+
+    func isMetricVisible(_ metricID: String, forProvider providerID: String) -> Bool {
+        !metricSettings(for: providerID).hiddenMetricIDs.contains(metricID)
+    }
+
+    func setMetric(_ metricID: String, isVisible: Bool, forProvider providerID: String) {
+        providerDisplaySettings.updateMetricSettings(for: providerID) { settings in
+            if isVisible {
+                settings.hiddenMetricIDs.remove(metricID)
+            } else {
+                settings.hiddenMetricIDs.insert(metricID)
+            }
+        }
+        persistProviderDisplaySettings()
+    }
+
+    func setDetail(_ detail: MobileMetricDisplaySettings.Detail, forProvider providerID: String) {
+        providerDisplaySettings.updateMetricSettings(for: providerID) { $0.detail = detail }
+        persistProviderDisplaySettings()
+    }
+
+    func moveMetrics(for provider: MobileProviderSnapshot, fromOffsets: IndexSet, toOffset: Int) {
+        var ids = customizableMetrics(for: provider).map(\.id)
+        guard let reordered = Self.reorder(ids, fromOffsets: fromOffsets, toOffset: toOffset) else { return }
+        ids = reordered
+        providerDisplaySettings.updateMetricSettings(for: provider.providerID) { $0.metricOrder = ids }
+        persistProviderDisplaySettings()
+    }
+
+    func resetMetricSettings(forProvider providerID: String) {
+        providerDisplaySettings.metricSettings.removeValue(forKey: providerID)
         persistProviderDisplaySettings()
     }
 

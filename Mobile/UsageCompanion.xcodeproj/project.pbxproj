@@ -25,6 +25,7 @@
 		408A5E909A863F561B17CFF1 /* WidgetDataAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EDC116A9669D768DDF43AA9 /* WidgetDataAccess.swift */; };
 		4257B54E55273DFD28AE8193 /* ProviderDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7CE6A54D5F6BB5586F770A4 /* ProviderDetailView.swift */; };
 		49DE3716E88669068894314B /* MobileDashboardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35A96DC180FF7879BFDA2310 /* MobileDashboardStore.swift */; };
+		5057C21A86871097B123C63F /* ProviderCustomizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E12D58C1D92C4EEFDA7FFBD /* ProviderCustomizationView.swift */; };
 		537265B3603029F0B23B2301 /* copilot.png in Resources */ = {isa = PBXBuildFile; fileRef = CA01E82C8CBB1F36E3431097 /* copilot.png */; };
 		54D50C880E73014F7E0DC40B /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C23AC99241D148C4672756 /* AppConfiguration.swift */; };
 		56D297350F89BFFB5BF4B799 /* zai.png in Resources */ = {isa = PBXBuildFile; fileRef = 90BBBAFD9BA1D06FAAB4C5E3 /* zai.png */; };
@@ -90,6 +91,7 @@
 		0E5E9E2A34F48CB838E5A565 /* UsageCompanionWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageCompanionWidgets.swift; sourceTree = "<group>"; };
 		198CC5624AA9FAFCFA8682C1 /* cursor.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = cursor.png; sourceTree = "<group>"; };
 		1DDBE14C44E6245566342C2A /* UsageOverviewWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageOverviewWidget.swift; sourceTree = "<group>"; };
+		1E12D58C1D92C4EEFDA7FFBD /* ProviderCustomizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderCustomizationView.swift; sourceTree = "<group>"; };
 		2A79EC6A98DC302784C24AE0 /* opencode.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = opencode.png; sourceTree = "<group>"; };
 		35A96DC180FF7879BFDA2310 /* MobileDashboardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileDashboardStore.swift; sourceTree = "<group>"; };
 		3E9A69764C9239A6C2FA6B74 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
@@ -229,6 +231,7 @@
 				9A3D51447E71391BB1EBFD4B /* HistoryView.swift */,
 				E5F214C698BA5C75CA4EADE9 /* OnboardingView.swift */,
 				B48C2811D1C30FFD348B15D5 /* ProviderCardView.swift */,
+				1E12D58C1D92C4EEFDA7FFBD /* ProviderCustomizationView.swift */,
 				A7CE6A54D5F6BB5586F770A4 /* ProviderDetailView.swift */,
 				5393C6566E8AC127A4454734 /* SettingsView.swift */,
 				7D4BFC01F81AC13CC1F7B022 /* TodayView.swift */,
@@ -474,6 +477,7 @@
 				26519D2888BA98630E34147D /* OnboardingView.swift in Sources */,
 				E6ACE87E5B4917EFEC1FD477 /* PreviewFixtures.swift in Sources */,
 				826634FB85C56F391A8E7851 /* ProviderCardView.swift in Sources */,
+				5057C21A86871097B123C63F /* ProviderCustomizationView.swift in Sources */,
 				4257B54E55273DFD28AE8193 /* ProviderDetailView.swift in Sources */,
 				3081AEB3BEC095DDCDFC7969 /* RootView.swift in Sources */,
 				0D7432D93B5B8649055ADA78 /* SettingsView.swift in Sources */,

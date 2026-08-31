@@ -12,8 +12,9 @@ OpenUsage Settings. History sync and mobile status sharing use separate consent 
 
 - `Mobile/project.yml` is the source for the Xcode project.
 - `Mobile/App/` contains the iPhone and iPad app.
-- `Mobile/Widgets/` contains a configurable small provider widget and a medium overview widget. Provider
-  visibility and order are stored in the App Group, so the app and both widgets use the same selection.
+- `Mobile/Widgets/` contains a configurable provider widget (small and medium) and an overview widget
+  (medium and large). Provider and metric choices are stored in the App Group, so the app and both
+  widgets use the same selection.
 - `Sources/OpenUsageMobileCore/` contains the shared document contract and resolvers.
 - `Mobile/Config/` contains build identifiers and entitlements.
 
@@ -27,6 +28,26 @@ open UsageCompanion.xcodeproj
 
 The checked-in project lets contributors open the app without installing XcodeGen. Keep it in sync with
 `project.yml`.
+
+## Choosing what each provider shows
+
+**Settings › Providers** decides what appears and how much of it, for the app and for both widgets:
+
+- Tap a provider to open its own screen. Tap **Edit** on either screen to drag rows into a new order.
+- **Show This Provider** removes it from Today and from the widgets. Nothing is deleted — the Mac keeps
+  publishing it and it can be shown again at any time.
+- **Card Detail** sets how many metrics fit under the headline on a card: Compact shows the headline
+  alone, Standard adds two more, Detailed adds every metric that is still visible.
+- The **Metrics** list turns individual metrics on and off and orders them. The first visible metric is
+  the headline on the Today card, in the overview widget row, and in the provider widget. A provider
+  always keeps at least one visible metric, so a card never goes blank.
+- A provider's detail screen still lists hidden metrics under **Hidden Metrics**, so a number is never
+  more than a tap away.
+- **Reset Every Provider** restores every provider and metric, in the order the Mac publishes them.
+
+The provider widget can also be configured on the Home Screen to lead with one specific metric. Only
+metrics kept visible in the app are offered; if a chosen metric is later hidden, the widget falls back to
+the provider's headline metric.
 
 ## Local identifiers
 

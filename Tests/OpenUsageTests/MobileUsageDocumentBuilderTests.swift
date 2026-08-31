@@ -8,7 +8,7 @@ final class MobileUsageDocumentBuilderTests: XCTestCase {
         let runtime = MobileSnapshotRuntime()
         let defaults = makeDefaults()
         let store = WidgetDataStore(
-            registry: WidgetRegistry(providers: [runtime.provider], descriptors: []),
+            registry: WidgetRegistry(providers: [runtime.provider], descriptors: runtime.widgetDescriptors),
             providers: [runtime],
             cache: ProviderSnapshotCache(userDefaults: defaults, storageKey: "snapshots"),
             defaults: defaults
@@ -28,8 +28,18 @@ final class MobileUsageDocumentBuilderTests: XCTestCase {
         XCTAssertEqual(provider.plan, "Max")
         XCTAssertEqual(provider.metrics.count, 4)
         XCTAssertEqual(provider.metrics.first?.remainingFraction, 0.76)
-        XCTAssertEqual(provider.metrics[2].label, "Quota 3")
-        XCTAssertEqual(provider.metrics[3].label, "Usage 4")
+        // A registered descriptor names the metric, and the id is derived from that name so a phone's
+        // saved metric order survives the Mac publishing one more line.
+        XCTAssertEqual(provider.metrics.map(\.label), ["Session", "Today", "Quota 3", "Usage 4"])
+        XCTAssertEqual(
+            provider.metrics.map(\.id),
+            [
+                "claude@deadbeef.session",
+                "claude@deadbeef.today",
+                "claude@deadbeef.quota-3",
+                "claude@deadbeef.usage-4"
+            ]
+        )
 
         store.providerErrors["claude@deadbeef"] = "token-expired:user@example.com"
         let failed = store.localMobileUsageDocument(deviceID: "mac-a", deviceName: "Studio")
@@ -59,7 +69,10 @@ private final class MobileSnapshotRuntime: ProviderRuntime {
         displayName: "Claude · user@example.com · Acme Research",
         icon: .providerMark("claude")
     )
-    let widgetDescriptors: [WidgetDescriptor] = []
+    var widgetDescriptors: [WidgetDescriptor] {
+        [.percent(id: "\(provider.id).session", provider: provider, title: "Session")]
+            + WidgetDescriptor.spendTiles(provider: provider)
+    }
 
     func refresh() async -> ProviderSnapshot {
         ProviderSnapshot(

@@ -23,7 +23,11 @@ struct TodayView: View {
                     NavigationLink {
                         ProviderDetailView(source: source)
                     } label: {
-                        ProviderCardView(source: source, hidesFinancialValues: store.hidesFinancialValues)
+                        ProviderCardView(
+                            source: source,
+                            hidesFinancialValues: store.hidesFinancialValues,
+                            displaySettings: store.providerDisplaySettings
+                        )
                     }
                     .buttonStyle(.plain)
                 }

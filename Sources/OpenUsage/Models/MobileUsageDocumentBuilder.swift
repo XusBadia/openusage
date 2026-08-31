@@ -2,9 +2,17 @@ import Foundation
 import OpenUsageMobileCore
 
 extension ProviderSnapshot {
-    func mobileSnapshot(status: MobileProviderStatus) -> MobileProviderSnapshot {
-        let mobileMetrics = lines.enumerated().compactMap { index, line in
-            line.mobileMetric(providerID: providerID, index: index)
+    /// - Parameter metricTitles: Registered widget-descriptor titles keyed by the lowercased metric
+    ///   label their provider emits. Only a line whose label a descriptor declares is named on mobile,
+    ///   so dynamic text (custom model names, org names) can never ride along in a label.
+    func mobileSnapshot(status: MobileProviderStatus, metricTitles: [String: String]) -> MobileProviderSnapshot {
+        var mobileMetrics: [MobileUsageMetric] = []
+        var usedIDs: Set<String> = []
+        for (index, line) in lines.enumerated() {
+            guard var metric = line.mobileMetric(providerID: providerID, index: index, metricTitles: metricTitles)
+            else { continue }
+            metric.id = Self.uniqueMetricID(metric.id, fallback: "\(providerID).metric-\(index)", used: &usedIDs)
+            mobileMetrics.append(metric)
         }
         return MobileProviderSnapshot(
             providerID: providerID,
@@ -15,20 +23,34 @@ extension ProviderSnapshot {
             metrics: mobileMetrics
         )
     }
+
+    /// Metric ids are derived from the metric's name so a phone's saved metric order and hidden metrics
+    /// survive a Mac publishing one more (or one fewer) line. Two lines that resolve to the same name
+    /// keep their position via a numeric suffix.
+    private static func uniqueMetricID(_ candidate: String, fallback: String, used: inout Set<String>) -> String {
+        var id = candidate.isEmpty ? fallback : candidate
+        var attempt = 2
+        while used.contains(id) {
+            id = "\(candidate.isEmpty ? fallback : candidate)-\(attempt)"
+            attempt += 1
+        }
+        used.insert(id)
+        return id
+    }
 }
 
 private extension MetricLine {
-    func mobileMetric(providerID: String, index: Int) -> MobileUsageMetric? {
-        let id = "\(providerID).metric-\(index)"
+    func mobileMetric(providerID: String, index: Int, metricTitles: [String: String]) -> MobileUsageMetric? {
         switch self {
         case .progress(let label, let used, let limit, let format, let resetsAt, let periodDurationMs, let colorHex):
             guard used.isFinite, limit.isFinite, limit > 0 else { return nil }
             let safeUsed = format == .percent
                 ? min(100, max(0, used))
                 : max(0, used)
+            let name = label.mobileMetricLabel(titles: metricTitles, fallback: "Quota \(index + 1)")
             return MobileUsageMetric(
-                id: id,
-                label: label.mobileMetricLabel(fallback: "Quota \(index + 1)"),
+                id: name.mobileMetricID(providerID: providerID),
+                label: name,
                 presentation: .progress,
                 used: safeUsed,
                 limit: limit,
@@ -40,9 +62,10 @@ private extension MetricLine {
         case .values(let label, let values, let colorHex, let expiriesAt, _, _):
             let safeValues = values.compactMap(\.mobileValue)
             guard !safeValues.isEmpty else { return nil }
+            let name = label.mobileMetricLabel(titles: metricTitles, fallback: "Usage \(index + 1)")
             return MobileUsageMetric(
-                id: id,
-                label: label.mobileMetricLabel(fallback: "Usage \(index + 1)"),
+                id: name.mobileMetricID(providerID: providerID),
+                label: name,
                 presentation: .values,
                 values: safeValues,
                 expiriesAt: expiriesAt,
@@ -88,39 +111,20 @@ private extension MetricKind {
 }
 
 private extension String {
-    func mobileMetricLabel(fallback: String) -> String {
-        switch lowercased() {
-        case "session": "Session"
-        case "weekly": "Weekly"
-        case "daily": "Daily"
-        case "monthly": "Monthly"
-        case "5-hour limit": "5-hour limit"
-        case "weekly limit": "Weekly limit"
-        case "total usage": "Total usage"
-        case "requests": "Requests"
-        case "cursor models": "Cursor Models"
-        case "other models": "Other Models"
-        case "on-demand": "On-demand"
-        case "extra usage spent": "Extra usage spent"
-        case "extra usage balance": "Extra usage balance"
-        case "credits": "Credits"
-        case "balance": "Balance"
-        case "today": "Today"
-        case "yesterday": "Yesterday"
-        case "this week": "This Week"
-        case "this month": "This Month"
-        case "last 7 days": "Last 7 Days"
-        case "last 30 days": "Last 30 Days"
-        case "key limit": "Key Limit"
-        case "rate limit resets": "Rate Limit Resets"
-        case "chat": "Chat"
-        case "completions": "Completions"
-        case "org credits": "Org Credits"
-        case "org spend": "Org Spend"
-        case "extra usage": "Extra Usage"
-        case "web searches": "Web Searches"
-        default: fallback
-        }
+    /// The Mac dashboard's own title for this metric, matched by the label the provider emits. An
+    /// unmatched label is dynamic text (a custom model name, an organization) and is replaced by a
+    /// neutral placeholder rather than published.
+    func mobileMetricLabel(titles: [String: String], fallback: String) -> String {
+        let key = trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return titles[key]?.mobileSafeText(maximumLength: 80) ?? fallback
+    }
+
+    /// A stable, name-derived metric id: "claude.session", "codex.spark-weekly".
+    func mobileMetricID(providerID: String) -> String {
+        let slug = lowercased()
+            .replacingOccurrences(of: "[^a-z0-9]+", with: "-", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        return slug.isEmpty ? "" : "\(providerID).\(slug)"
     }
 
     var mobileValueLabel: String? {
@@ -156,7 +160,9 @@ private extension String {
         case "opencode": "OpenCode"
         case "openrouter": "OpenRouter"
         case "zai": "Z.ai"
-        default: "Provider"
+        // Provider ids are code-authored slugs, so a provider that ships before this list is updated
+        // still reads as itself instead of a generic "Provider".
+        default: family.isEmpty ? "Provider" : family.prefix(1).uppercased() + family.dropFirst()
         }
     }
 
@@ -194,7 +200,10 @@ extension WidgetDataStore {
                 } else {
                     .available
                 }
-                providers[providerID] = snapshot.mobileSnapshot(status: status)
+                providers[providerID] = snapshot.mobileSnapshot(
+                    status: status,
+                    metricTitles: mobileMetricTitles(providerID: providerID)
+                )
             } else if providerErrors[providerID] != nil,
                       registry.provider(id: providerID) != nil
             {
@@ -215,5 +224,16 @@ extension WidgetDataStore {
             providerOrder: orderedProviderIDs.filter { providers[$0] != nil },
             providers: providers
         )
+    }
+
+    /// A provider's registered metric titles keyed by the label its lines carry. This is the allowlist
+    /// the mobile document names metrics from: every entry is copy declared in a widget descriptor, and
+    /// the phone ends up showing the same name as the Mac dashboard.
+    private func mobileMetricTitles(providerID: String) -> [String: String] {
+        registry.descriptors(for: providerID).reduce(into: [String: String]()) { titles, descriptor in
+            let key = descriptor.metricLabel.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            guard !key.isEmpty, titles[key] == nil else { return }
+            titles[key] = descriptor.title
+        }
     }
 }

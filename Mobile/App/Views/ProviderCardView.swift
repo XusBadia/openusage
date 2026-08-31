@@ -4,30 +4,25 @@ import SwiftUI
 struct ProviderCardView: View {
     let source: ResolvedMobileProvider
     let hidesFinancialValues: Bool
+    let displaySettings: MobileProviderDisplaySettings
 
     private var provider: MobileProviderSnapshot { source.provider }
-    private var primary: MobileUsageMetric? { provider.primaryMetric }
+    private var cardMetrics: MobileProviderCardMetrics { displaySettings.cardMetrics(for: provider) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             header
-            if let primary {
-                primaryMetric(primary)
+            if let headline = cardMetrics.headline {
+                primaryMetric(headline)
             } else {
-                Text(provider.status == .unavailable ? "Update unavailable" : "No numeric usage yet")
+                Text(emptyStateText)
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
-            if provider.metrics.count > 1 {
+            let secondary = cardMetrics.secondary
+            if !secondary.isEmpty {
                 Divider()
-                HStack(spacing: 18) {
-                    ForEach(Array(provider.metrics.dropFirst().prefix(2))) { metric in
-                        secondaryMetric(metric)
-                        if metric.id != provider.metrics.dropFirst().prefix(2).last?.id {
-                            Divider().frame(height: 34)
-                        }
-                    }
-                }
+                secondaryGrid(secondary)
             }
             footer
         }
@@ -114,6 +109,35 @@ struct ProviderCardView: View {
                     fraction: fraction,
                     color: MobilePalette.quotaColor(for: metric, providerID: provider.providerID)
                 )
+            }
+        }
+    }
+
+    private var emptyStateText: String {
+        switch provider.status {
+        case .unavailable: "Update unavailable"
+        default: provider.metrics.isEmpty ? "No numeric usage yet" : "Every metric is hidden"
+        }
+    }
+
+    /// Two metrics per row, so a Detailed card grows downward instead of squeezing every metric into one
+    /// line. Rows keep the vertical rule between the two columns the Standard card has always used.
+    private func secondaryGrid(_ metrics: [MobileUsageMetric]) -> some View {
+        let rows = stride(from: 0, to: metrics.count, by: 2).map { start in
+            Array(metrics[start..<min(start + 2, metrics.count)])
+        }
+        return VStack(alignment: .leading, spacing: 14) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { offset, row in
+                if offset > 0 { Divider() }
+                HStack(spacing: 18) {
+                    secondaryMetric(row[0])
+                    if row.count > 1 {
+                        Divider().frame(height: 34)
+                        secondaryMetric(row[1])
+                    } else {
+                        Color.clear.frame(maxWidth: .infinity)
+                    }
+                }
             }
         }
     }

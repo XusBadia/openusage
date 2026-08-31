@@ -13,8 +13,10 @@ not turn mobile sharing on.
 
 The mobile snapshot contains numeric quotas, reset dates, balances, plan names, source freshness, and a
 coarse availability status. It excludes credentials, email addresses, account and organization IDs,
-prompts, logs, model names, raw errors, and provider responses. Turning mobile sharing off deletes that
-Mac's mobile snapshot. Existing history sync behavior does not change.
+prompts, logs, model names, raw errors, and provider responses. Each metric is named with the same title
+the Mac dashboard uses for it; a metric whose name a provider makes up on the fly, such as a custom model
+or an organization, is published as a neutral placeholder instead. Turning mobile sharing off deletes
+that Mac's mobile snapshot. Existing history sync behavior does not change.
 
 The file contains normalized daily tokens and spend, model totals, and unknown-model names for sources
 that are local to one Mac: Claude, Codex, Grok, and OpenCode. It also includes Claude account and

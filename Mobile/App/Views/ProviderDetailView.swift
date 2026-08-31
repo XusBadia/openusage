@@ -7,16 +7,25 @@ struct ProviderDetailView: View {
 
     private var provider: MobileProviderSnapshot { source.provider }
 
+    private var visibleMetrics: [MobileUsageMetric] {
+        store.providerDisplaySettings.visibleMetrics(for: provider)
+    }
+
+    private var hiddenMetrics: [MobileUsageMetric] {
+        let visibleIDs = Set(visibleMetrics.map(\.id))
+        return store.providerDisplaySettings.orderedMetrics(for: provider)
+            .filter { !visibleIDs.contains($0.id) }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 identity
-                ForEach(provider.metrics) { metric in
-                    MetricDetailCard(
-                        metric: metric,
-                        providerID: provider.providerID,
-                        hidesFinancialValues: store.hidesFinancialValues
-                    )
+                ForEach(visibleMetrics) { metric in
+                    metricCard(metric)
+                }
+                if !hiddenMetrics.isEmpty {
+                    hiddenSection
                 }
                 sourceCard
             }
@@ -27,6 +36,40 @@ struct ProviderDetailView: View {
         .background(MobilePalette.canvas.ignoresSafeArea())
         .navigationTitle(provider.displayName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    ProviderMetricCustomizationView(source: source)
+                } label: {
+                    Label("Customize", systemImage: "slider.horizontal.3")
+                }
+            }
+        }
+    }
+
+    private func metricCard(_ metric: MobileUsageMetric) -> some View {
+        MetricDetailCard(
+            metric: metric,
+            providerID: provider.providerID,
+            hidesFinancialValues: store.hidesFinancialValues
+        )
+    }
+
+    /// Hidden metrics stay synced, so this screen keeps them one tap away instead of pretending the Mac
+    /// never published them.
+    private var hiddenSection: some View {
+        DisclosureGroup {
+            VStack(alignment: .leading, spacing: 16) {
+                ForEach(hiddenMetrics) { metric in
+                    metricCard(metric)
+                }
+            }
+            .padding(.top, 12)
+        } label: {
+            Label("Hidden Metrics (\(hiddenMetrics.count))", systemImage: "eye.slash")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+        }
     }
 
     private var identity: some View {

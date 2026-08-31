@@ -109,6 +109,18 @@ enum PreviewFixtures {
                     resetsAt: weeklyReset,
                     colorHex: accent
                 ),
+                MobileUsageMetric(
+                    id: "\(id).today",
+                    label: "Today",
+                    presentation: .values,
+                    values: [MobileMetricValue(number: 4.18, unit: MobileMetricUnit(kind: .dollars), estimated: true)]
+                ),
+                MobileUsageMetric(
+                    id: "\(id).last30",
+                    label: "Last 30 Days",
+                    presentation: .values,
+                    values: [MobileMetricValue(number: 162.37, unit: MobileMetricUnit(kind: .dollars), estimated: true)]
+                ),
             ]
         )
     }
