@@ -139,6 +139,14 @@ targets:
     entitlements:
       path: Config/UsageCompanionWidgets.entitlements
       properties:
+        # The extension reads the synced iCloud folder itself on every timeline refresh, so it needs the
+        # container too — with only the App Group it can never do more than re-render the app's cache.
+        com.apple.developer.icloud-container-identifiers:
+          - $(ICLOUD_CONTAINER_IDENTIFIER)
+        com.apple.developer.ubiquity-container-identifiers:
+          - $(ICLOUD_CONTAINER_IDENTIFIER)
+        com.apple.developer.icloud-services:
+          - CloudDocuments
         com.apple.security.application-groups:
           - $(APP_GROUP_IDENTIFIER)
     settings:

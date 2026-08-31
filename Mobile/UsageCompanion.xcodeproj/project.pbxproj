@@ -46,6 +46,7 @@
 		B94D277F253EF162A58563F3 /* UsageCompanionWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B7AB86D75F23170749C863F9 /* UsageCompanionWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		BD855C2874EF03B0D46A2777 /* codex.png in Resources */ = {isa = PBXBuildFile; fileRef = F0EE10AA678F0F104913CEBC /* codex.png */; };
 		C0DFD6648D5B8D492158552B /* WidgetDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBE8340F4E5AEBE598ED06E /* WidgetDesign.swift */; };
+		C35079CC16D0551C08C53661 /* UsageOverviewIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3047040250129F267722653 /* UsageOverviewIntent.swift */; };
 		D457C458DA32CAB7536D5480 /* ProviderWidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2A341EF1BC08E03D48E515D /* ProviderWidgetIntent.swift */; };
 		DA21468919DC677E7DA169F7 /* antigravity.png in Resources */ = {isa = PBXBuildFile; fileRef = 46CB9336FDA42D2B0E64C404 /* antigravity.png */; };
 		E639F4032B21FFB2DCC130A2 /* zai.png in Resources */ = {isa = PBXBuildFile; fileRef = 90BBBAFD9BA1D06FAAB4C5E3 /* zai.png */; };
@@ -122,6 +123,7 @@
 		D2A341EF1BC08E03D48E515D /* ProviderWidgetIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderWidgetIntent.swift; sourceTree = "<group>"; };
 		D8779CC4C6B21A21B2C6924A /* PreviewFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewFixtures.swift; sourceTree = "<group>"; };
 		E1939D97BCD4D4F09A3CFCF2 /* ProviderUsageWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderUsageWidget.swift; sourceTree = "<group>"; };
+		E3047040250129F267722653 /* UsageOverviewIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageOverviewIntent.swift; sourceTree = "<group>"; };
 		E5F214C698BA5C75CA4EADE9 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		E7C23AC99241D148C4672756 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		F0EE10AA678F0F104913CEBC /* codex.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = codex.png; sourceTree = "<group>"; };
@@ -250,6 +252,7 @@
 				E1939D97BCD4D4F09A3CFCF2 /* ProviderUsageWidget.swift */,
 				D2A341EF1BC08E03D48E515D /* ProviderWidgetIntent.swift */,
 				0E5E9E2A34F48CB838E5A565 /* UsageCompanionWidgets.swift */,
+				E3047040250129F267722653 /* UsageOverviewIntent.swift */,
 				1DDBE14C44E6245566342C2A /* UsageOverviewWidget.swift */,
 				4EDC116A9669D768DDF43AA9 /* WidgetDataAccess.swift */,
 				5EBE8340F4E5AEBE598ED06E /* WidgetDesign.swift */,
@@ -489,6 +492,7 @@
 				B54100161F960A69476ECC27 /* ProviderUsageWidget.swift in Sources */,
 				D457C458DA32CAB7536D5480 /* ProviderWidgetIntent.swift in Sources */,
 				320B7C6D23BC5586A796F8C0 /* UsageCompanionWidgets.swift in Sources */,
+				C35079CC16D0551C08C53661 /* UsageOverviewIntent.swift in Sources */,
 				B62D977CE9CC6E7F7692991D /* UsageOverviewWidget.swift in Sources */,
 				408A5E909A863F561B17CFF1 /* WidgetDataAccess.swift in Sources */,
 				C0DFD6648D5B8D492158552B /* WidgetDesign.swift in Sources */,

@@ -1,64 +1,68 @@
+import AppIntents
 import OpenUsageMobileCore
 import SwiftUI
 import WidgetKit
 
-/// The most provider rows any family lists — the large one. The timeline entry carries this many so a
-/// widget resized on the Home Screen renders from the entry it already has.
-private let usageOverviewMaximumRows = 6
-
-/// `TimelineProvider` predates Swift concurrency, so its completion handler is not `Sendable` and cannot
-/// be passed into the task that reads iCloud. WidgetKit hands the handler over and expects it back once,
-/// which is exactly what this carries.
-private struct WidgetCompletion<Value>: @unchecked Sendable {
-    private let handler: (Value) -> Void
-
-    init(_ handler: @escaping (Value) -> Void) {
-        self.handler = handler
-    }
-
-    func callAsFunction(_ value: Value) {
-        handler(value)
-    }
-}
+/// The most provider rows any family and detail level lists. The timeline entry carries this many so a
+/// widget resized or reconfigured on the Home Screen renders from the entry it already has.
+private let usageOverviewMaximumRows = 10
 
 struct UsageOverviewEntry: TimelineEntry {
     var date: Date
     var providers: [ResolvedMobileProvider]
     var displaySettings: MobileProviderDisplaySettings
+    var detail: OverviewRowDetail
+    var requestedRows: Int?
+    var showsHeader: Bool
+    var showsResets: Bool
+    var showsPlans: Bool
     var hidesFinancialValues: Bool
     var hasSyncedProviders: Bool
 }
 
-struct UsageOverviewTimelineProvider: TimelineProvider {
+struct UsageOverviewTimelineProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> UsageOverviewEntry {
-        UsageOverviewEntry(
-            date: .now,
+        entry(for: UsageOverviewIntent(), from: MobileSharedSnapshot(
+            cachedAt: .now,
             providers: WidgetPreviewFixtures.providers(),
-            displaySettings: MobileProviderDisplaySettings(),
-            hidesFinancialValues: false,
-            hasSyncedProviders: true
-        )
+            dailyTotals: []
+        ))
     }
 
     /// The gallery asks for this while someone is looking at it, so it renders the cache instead of
     /// waiting on iCloud.
-    func getSnapshot(in context: Context, completion: @escaping (UsageOverviewEntry) -> Void) {
-        completion(entry(from: WidgetDataAccess.cachedSnapshot()))
+    func snapshot(for configuration: UsageOverviewIntent, in context: Context) async -> UsageOverviewEntry {
+        entry(for: configuration, from: WidgetDataAccess.cachedSnapshot())
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<UsageOverviewEntry>) -> Void) {
-        let deliver = WidgetCompletion(completion)
-        Task {
-            let entry = entry(from: await WidgetDataAccess.currentSnapshot())
-            deliver(Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(15 * 60))))
+    func timeline(for configuration: UsageOverviewIntent, in context: Context) async -> Timeline<UsageOverviewEntry> {
+        let entry = entry(for: configuration, from: await WidgetDataAccess.currentSnapshot())
+        return Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(15 * 60)))
+    }
+
+    private func entry(
+        for configuration: UsageOverviewIntent,
+        from snapshot: MobileSharedSnapshot?
+    ) -> UsageOverviewEntry {
+        let settings = WidgetDataAccess.displaySettings
+        var providers = WidgetDataAccess.providers(in: snapshot)
+        // An empty picker keeps following the app; naming providers here overrides that for this widget
+        // only, and still respects whether the app is hiding one.
+        if let chosen = configuration.providers, !chosen.isEmpty {
+            let wanted = Set(chosen.map(\.id))
+            providers = providers.filter { wanted.contains($0.provider.providerID) }
         }
-    }
-
-    private func entry(from snapshot: MobileSharedSnapshot?) -> UsageOverviewEntry {
-        UsageOverviewEntry(
+        return UsageOverviewEntry(
             date: .now,
-            providers: Array(WidgetDataAccess.providers(in: snapshot).prefix(usageOverviewMaximumRows)),
-            displaySettings: WidgetDataAccess.displaySettings,
+            providers: Array(
+                settings.sortedProviders(providers, by: configuration.sort.sort).prefix(usageOverviewMaximumRows)
+            ),
+            displaySettings: settings,
+            detail: configuration.detail,
+            requestedRows: configuration.rows.requested,
+            showsHeader: configuration.showsHeader,
+            showsResets: configuration.showsResets,
+            showsPlans: configuration.showsPlans,
             hidesFinancialValues: WidgetDataAccess.hidesFinancialValues,
             hasSyncedProviders: !(snapshot?.providers.isEmpty ?? true)
         )
@@ -69,7 +73,7 @@ struct UsageOverviewWidget: Widget {
     let kind = "UsageOverviewWidget"
 
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: UsageOverviewTimelineProvider()) { entry in
+        AppIntentConfiguration(kind: kind, intent: UsageOverviewIntent.self, provider: UsageOverviewTimelineProvider()) { entry in
             UsageOverviewWidgetView(entry: entry)
                 .containerBackground(for: .widget) { Color(uiColor: .secondarySystemBackground) }
         }
@@ -83,65 +87,109 @@ private struct UsageOverviewWidgetView: View {
     let entry: UsageOverviewEntry
     @Environment(\.widgetFamily) private var family
 
-    /// The large family is twice as tall, so it lists twice as many providers before trimming.
-    private var rowLimit: Int { family == .systemLarge ? usageOverviewMaximumRows : 3 }
+    /// What each size can show without clipping. A row count larger than this is trimmed to it, since a
+    /// row half off the edge reads as a bug rather than as a choice.
+    private var maximumRows: Int {
+        switch (family, entry.detail) {
+        case (.systemLarge, .compact): 10
+        case (.systemLarge, .standard): 6
+        case (.systemLarge, .expanded): 4
+        case (_, .compact): 4
+        case (_, .standard): 3
+        case (_, .expanded): 2
+        }
+    }
 
-    private var rows: [ResolvedMobileProvider] { Array(entry.providers.prefix(rowLimit)) }
+    private var rows: [ResolvedMobileProvider] {
+        Array(entry.providers.prefix(min(entry.requestedRows ?? maximumRows, maximumRows)))
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Usage").font(.headline)
-                Spacer()
-                if let freshest = entry.providers.map(\.provider.refreshedAt).max() {
-                    Text(freshest, style: .relative)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
+        VStack(alignment: .leading, spacing: entry.detail == .compact ? 6 : 12) {
+            if entry.showsHeader { header }
             if rows.isEmpty {
                 Spacer()
                 Label(
                     entry.hasSyncedProviders ? "No providers selected" : "Waiting for your Mac",
                     systemImage: entry.hasSyncedProviders ? "slider.horizontal.3" : "icloud.slash"
                 )
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
                 Spacer()
             } else {
                 ForEach(rows) { source in
                     providerRow(source)
                 }
-                if family == .systemLarge { Spacer(minLength: 0) }
+                Spacer(minLength: 0)
             }
         }
     }
 
-    /// The metric this person put first for the provider, so the overview leads with the same number the
-    /// Today card does.
-    private func headlineMetric(_ source: ResolvedMobileProvider) -> MobileUsageMetric? {
-        entry.displaySettings.cardMetrics(for: source.provider).headline
+    private var header: some View {
+        HStack {
+            Text("Usage").font(.headline)
+            Spacer()
+            if let freshest = entry.providers.map(\.provider.refreshedAt).max() {
+                Text(freshest, style: .relative)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 
     private func providerRow(_ source: ResolvedMobileProvider) -> some View {
-        HStack(spacing: 10) {
-            WidgetProviderIcon(providerID: source.provider.providerID, size: 24)
+        let card = entry.displaySettings.cardMetrics(for: source.provider)
+        return HStack(alignment: .top, spacing: 10) {
+            WidgetProviderIcon(providerID: source.provider.providerID, size: entry.detail == .compact ? 18 : 24)
             VStack(alignment: .leading, spacing: 4) {
-                HStack {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(source.provider.displayName)
                         .font(.caption.weight(.semibold))
-                    Spacer()
-                    if let metric = headlineMetric(source) {
+                        .lineLimit(1)
+                    if entry.showsPlans, let plan = source.provider.plan {
+                        Text(plan)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 4)
+                    if let metric = card.headline {
                         Text(WidgetFormatting.remaining(metric, hidesFinancialValues: entry.hidesFinancialValues))
                             .font(.caption.weight(.bold).monospacedDigit())
                     }
                 }
-                if let metric = headlineMetric(source), let fraction = metric.remainingFraction {
-                    WidgetQuotaBar(
-                        fraction: fraction,
-                        color: WidgetDesign.quotaColor(metric, providerID: source.provider.providerID)
-                    )
+                if entry.detail != .compact {
+                    barRow(card.headline, providerID: source.provider.providerID)
                 }
+                if entry.detail == .expanded, !card.secondary.isEmpty {
+                    HStack(spacing: 12) {
+                        ForEach(card.secondary.prefix(2)) { metric in
+                            Text("\(metric.label) \(WidgetFormatting.remaining(metric, hidesFinancialValues: entry.hidesFinancialValues))")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func barRow(_ metric: MobileUsageMetric?, providerID: String) -> some View {
+        HStack(spacing: 8) {
+            if let metric, let fraction = metric.remainingFraction {
+                WidgetQuotaBar(
+                    fraction: fraction,
+                    color: WidgetDesign.quotaColor(metric, providerID: providerID)
+                )
+            }
+            if entry.showsResets, let reset = metric?.resetsAt {
+                Text(WidgetFormatting.reset(reset, now: entry.date))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize()
             }
         }
     }

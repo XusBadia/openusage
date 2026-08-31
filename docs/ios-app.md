@@ -60,9 +60,30 @@ their provisioning profiles.
   more than a tap away.
 - **Reset Every Provider** restores every provider and metric, in the order the Mac publishes them.
 
-The provider widget can also be configured on the Home Screen to lead with one specific metric. Only
-metrics kept visible in the app are offered; if a chosen metric is later hidden, the widget falls back to
-the provider's headline metric.
+## Configuring a widget on the Home Screen
+
+Both widgets follow the app's choices by default. Long-press one and choose **Edit Widget** to give that
+copy its own settings, so two widgets of the same kind can watch different things.
+
+**Provider Usage** (small, medium):
+
+- **Provider** — which provider it shows.
+- **Metric** — which metric it leads with. Only metrics kept visible in the app are offered; if the chosen
+  one is later hidden, it falls back to the provider's headline metric.
+
+**Usage Overview** (medium, large):
+
+- **Providers** — leave empty to follow the app, or pick the ones this widget should list. A provider
+  hidden in the app never appears, whatever is picked here.
+- **Order** — Your Order, Least Left First (whatever is closest to running out), or Soonest Reset First.
+  The last two sort on each provider's headline metric, so reordering metrics in the app changes what they
+  compare.
+- **Rows** — Automatic fills the widget; a number smaller than that shows fewer. A number larger than the
+  size can fit is trimmed to what fits.
+- **Row Detail** — Compact (name and number, so more providers fit), Standard (adds a bar), or Expanded
+  (adds that provider's other visible metrics).
+- **Show Title**, **Show Reset Times**, **Show Plan Names** — turn off what you do not need. Reset times
+  need Standard or Expanded to have room.
 
 ## Local identifiers
 
