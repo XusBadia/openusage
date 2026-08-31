@@ -116,11 +116,11 @@ final class MobileDashboardStore {
         isRefreshing = true
         defer { isRefreshing = false }
         do {
-            let result = try await reader.load()
-            let resolved = MobileUsageResolver.resolve(result.usageDocuments)
-            let totals = MobileHistoryAggregator.totals(from: result.historyDocuments)
+            let refresh = try await MobileSnapshotSync.refresh(reader: reader, store: sharedStore)
+            let result = refresh.read
+            let resolved = refresh.snapshot.providers
             allProviders = resolved
-            dailyTotals = totals
+            dailyTotals = refresh.snapshot.dailyTotals
             let historyProviderIDs = Set(result.historyDocuments.flatMap { $0.providers.keys })
             providerDailyTotals = Dictionary(uniqueKeysWithValues: historyProviderIDs.map { providerID in
                 (
@@ -133,8 +133,6 @@ final class MobileDashboardStore {
             lastReadAt = Date()
             refreshNotice = nil
             phase = resolved.isEmpty ? .waitingForMac : .content
-            let cache = MobileSharedSnapshot(cachedAt: Date(), providers: resolved, dailyTotals: totals)
-            try sharedStore.save(cache)
             WidgetCenter.shared.reloadAllTimelines()
         } catch {
             refreshNotice = error.localizedDescription

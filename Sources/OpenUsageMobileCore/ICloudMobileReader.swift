@@ -1,29 +1,45 @@
 import Foundation
-import OpenUsageMobileCore
 import OSLog
 
-struct ICloudMobileReadResult: Sendable {
-    var usageDocuments: [MobileUsageDocument]
-    var historyDocuments: [MobileUsageHistoryDocument]
-    var invalidFileCount: Int
+/// What one pass over the synced iCloud folder produced.
+public struct ICloudMobileReadResult: Sendable {
+    public var usageDocuments: [MobileUsageDocument]
+    public var historyDocuments: [MobileUsageHistoryDocument]
+    public var invalidFileCount: Int
+
+    public init(
+        usageDocuments: [MobileUsageDocument],
+        historyDocuments: [MobileUsageHistoryDocument],
+        invalidFileCount: Int
+    ) {
+        self.usageDocuments = usageDocuments
+        self.historyDocuments = historyDocuments
+        self.invalidFileCount = invalidFileCount
+    }
 }
 
-protocol MobileSnapshotReading: Sendable {
+public protocol MobileSnapshotReading: Sendable {
     func load() async throws -> ICloudMobileReadResult
 }
 
-enum ICloudMobileReaderError: Error, LocalizedError {
+public enum ICloudMobileReaderError: Error, LocalizedError {
     case unavailable
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         "iCloud Drive isn’t available. Check that this iPhone is signed in and iCloud Drive is on."
     }
 }
 
-actor ICloudMobileReader: MobileSnapshotReading {
+/// Reads the folder a Mac publishes into the shared iCloud Documents container.
+///
+/// The iOS app and the WidgetKit extension both run this: a widget that could only render whatever the
+/// app last cached went stale the moment someone stopped opening the app.
+public actor ICloudMobileReader: MobileSnapshotReading {
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "UsageCompanion", category: "iCloud")
 
-    func load() async throws -> ICloudMobileReadResult {
+    public init() {}
+
+    public func load() async throws -> ICloudMobileReadResult {
         guard let container = FileManager.default.url(forUbiquityContainerIdentifier: nil) else {
             throw ICloudMobileReaderError.unavailable
         }

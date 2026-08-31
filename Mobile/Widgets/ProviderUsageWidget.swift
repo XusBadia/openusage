@@ -21,17 +21,22 @@ struct ProviderUsageTimelineProvider: AppIntentTimelineProvider {
         )
     }
 
+    /// The configuration sheet asks for this while someone is looking at it, so it renders the cache
+    /// instead of waiting on iCloud.
     func snapshot(for configuration: ProviderWidgetIntent, in context: Context) async -> ProviderUsageEntry {
-        entry(for: configuration)
+        entry(for: configuration, snapshot: WidgetDataAccess.cachedSnapshot())
     }
 
     func timeline(for configuration: ProviderWidgetIntent, in context: Context) async -> Timeline<ProviderUsageEntry> {
-        let entry = entry(for: configuration)
+        let entry = entry(for: configuration, snapshot: await WidgetDataAccess.currentSnapshot())
         return Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(15 * 60)))
     }
 
-    private func entry(for configuration: ProviderWidgetIntent) -> ProviderUsageEntry {
-        let source = WidgetDataAccess.provider(id: configuration.provider?.id)
+    private func entry(
+        for configuration: ProviderWidgetIntent,
+        snapshot: MobileSharedSnapshot?
+    ) -> ProviderUsageEntry {
+        let source = WidgetDataAccess.provider(id: configuration.provider?.id, in: snapshot)
         return ProviderUsageEntry(
             date: .now,
             provider: source,

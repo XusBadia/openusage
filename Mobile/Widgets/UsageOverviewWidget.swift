@@ -6,6 +6,21 @@ import WidgetKit
 /// widget resized on the Home Screen renders from the entry it already has.
 private let usageOverviewMaximumRows = 6
 
+/// `TimelineProvider` predates Swift concurrency, so its completion handler is not `Sendable` and cannot
+/// be passed into the task that reads iCloud. WidgetKit hands the handler over and expects it back once,
+/// which is exactly what this carries.
+private struct WidgetCompletion<Value>: @unchecked Sendable {
+    private let handler: (Value) -> Void
+
+    init(_ handler: @escaping (Value) -> Void) {
+        self.handler = handler
+    }
+
+    func callAsFunction(_ value: Value) {
+        handler(value)
+    }
+}
+
 struct UsageOverviewEntry: TimelineEntry {
     var date: Date
     var providers: [ResolvedMobileProvider]
@@ -25,19 +40,24 @@ struct UsageOverviewTimelineProvider: TimelineProvider {
         )
     }
 
+    /// The gallery asks for this while someone is looking at it, so it renders the cache instead of
+    /// waiting on iCloud.
     func getSnapshot(in context: Context, completion: @escaping (UsageOverviewEntry) -> Void) {
-        completion(entry())
+        completion(entry(from: WidgetDataAccess.cachedSnapshot()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<UsageOverviewEntry>) -> Void) {
-        completion(Timeline(entries: [entry()], policy: .after(Date().addingTimeInterval(15 * 60))))
+        let deliver = WidgetCompletion(completion)
+        Task {
+            let entry = entry(from: await WidgetDataAccess.currentSnapshot())
+            deliver(Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(15 * 60))))
+        }
     }
 
-    private func entry() -> UsageOverviewEntry {
-        let snapshot = WidgetDataAccess.snapshot()
-        return UsageOverviewEntry(
+    private func entry(from snapshot: MobileSharedSnapshot?) -> UsageOverviewEntry {
+        UsageOverviewEntry(
             date: .now,
-            providers: Array(WidgetDataAccess.providers().prefix(usageOverviewMaximumRows)),
+            providers: Array(WidgetDataAccess.providers(in: snapshot).prefix(usageOverviewMaximumRows)),
             displaySettings: WidgetDataAccess.displaySettings,
             hidesFinancialValues: WidgetDataAccess.hidesFinancialValues,
             hasSyncedProviders: !(snapshot?.providers.isEmpty ?? true)

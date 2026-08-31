@@ -4,7 +4,10 @@ import PackageDescription
 let package = Package(
     name: "OpenUsage",
     platforms: [
-        .macOS(.v15)
+        .macOS(.v15),
+        // `OpenUsageMobileCore` is shared with the iOS companion in `Mobile/`, whose app and widget
+        // extension both target iOS 18.
+        .iOS(.v18)
     ],
     products: [
         .executable(name: "OpenUsage", targets: ["OpenUsageApp"]),

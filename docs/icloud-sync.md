@@ -8,7 +8,7 @@ pairing code, or separate account.
 
 **Share Usage With Mobile Devices** is a separate setting and is also off by default. A Mac with this
 setting enabled writes a read-only mobile snapshot to `OpenUsage/Mobile/v1/<device-id>.json`. The iOS
-companion picks the newest copy of each provider across the available Macs. Turning history sync on does
+companion and its widgets pick the newest copy of each provider across the available Macs. Turning history sync on does
 not turn mobile sharing on.
 
 The mobile snapshot contains numeric quotas, reset dates, balances, plan names, source freshness, and a

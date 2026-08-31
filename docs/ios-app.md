@@ -15,7 +15,8 @@ OpenUsage Settings. History sync and mobile status sharing use separate consent 
 - `Mobile/Widgets/` contains a configurable provider widget (small and medium) and an overview widget
   (medium and large). Provider and metric choices are stored in the App Group, so the app and both
   widgets use the same selection.
-- `Sources/OpenUsageMobileCore/` contains the shared document contract and resolvers.
+- `Sources/OpenUsageMobileCore/` contains the shared document contract, the resolvers, and the iCloud
+  reader the app and the widgets both run.
 - `Mobile/Config/` contains build identifiers and entitlements.
 
 Run XcodeGen after changing targets, resources, plist values, or entitlements:
@@ -28,6 +29,20 @@ open UsageCompanion.xcodeproj
 
 The checked-in project lets contributors open the app without installing XcodeGen. Keep it in sync with
 `project.yml`.
+
+## Staying current
+
+The app reads iCloud when it opens and whenever it returns to the foreground. **The widgets read iCloud
+themselves** on each timeline refresh, so a widget keeps updating even if nobody opens the app; iOS
+budgets those refreshes, so expect a widget to be current within roughly 15 to 60 minutes rather than
+matching the Mac's five-minute cycle minute for minute.
+
+Whichever surface refreshed last writes the App Group cache, and the others render that cache while their
+own read is in flight. A failed read never blanks a widget: it keeps showing the last values it had and
+records the reason in the log.
+
+Both the app and the widget extension therefore need the iCloud container in their entitlements and in
+their provisioning profiles.
 
 ## Choosing what each provider shows
 
@@ -67,9 +82,10 @@ Set these values in `Local.xcconfig`:
 - `ICLOUD_CONTAINER_IDENTIFIER` for the shared iCloud Documents container.
 - `APP_GROUP_IDENTIFIER` for the app-to-widget cache.
 
-Enable iCloud Documents and App Groups for both App IDs in the Apple Developer portal. Assign the iCloud
-container to the app App ID. Assign the App Group to the app and widget App IDs. Xcode then creates or
-updates the provisioning profiles.
+Enable iCloud Documents and App Groups for both App IDs in the Apple Developer portal, and assign the
+iCloud container **and** the App Group to both the app and the widget App IDs — the widget extension reads
+iCloud on its own, so a profile without the container makes its timelines fall back to the cache forever.
+Xcode then creates or updates the provisioning profiles.
 
 The Mac and iOS builds must use the same iCloud container to exchange files. A third-party TestFlight can
 use its own container, bundle IDs, App Group, signing team, display name, and icon. The OpenUsage

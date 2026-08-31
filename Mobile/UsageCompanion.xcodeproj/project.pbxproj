@@ -29,7 +29,6 @@
 		537265B3603029F0B23B2301 /* copilot.png in Resources */ = {isa = PBXBuildFile; fileRef = CA01E82C8CBB1F36E3431097 /* copilot.png */; };
 		54D50C880E73014F7E0DC40B /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C23AC99241D148C4672756 /* AppConfiguration.swift */; };
 		56D297350F89BFFB5BF4B799 /* zai.png in Resources */ = {isa = PBXBuildFile; fileRef = 90BBBAFD9BA1D06FAAB4C5E3 /* zai.png */; };
-		610C75F4EB4CA1DC37495A96 /* ICloudMobileReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 975DADBF734EB740F70FB589 /* ICloudMobileReader.swift */; };
 		6DC28556CA47D282706981A1 /* cursor.png in Resources */ = {isa = PBXBuildFile; fileRef = 198CC5624AA9FAFCFA8682C1 /* cursor.png */; };
 		7A3119B860207580A7977016 /* opencode.png in Resources */ = {isa = PBXBuildFile; fileRef = 2A79EC6A98DC302784C24AE0 /* opencode.png */; };
 		7A4514AEA4E3B2388F0F4E50 /* claude.png in Resources */ = {isa = PBXBuildFile; fileRef = CE99404EB0C8A08E051F08B5 /* claude.png */; };
@@ -104,7 +103,6 @@
 		7D4BFC01F81AC13CC1F7B022 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		90BBBAFD9BA1D06FAAB4C5E3 /* zai.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = zai.png; sourceTree = "<group>"; };
 		940979F89F46E044A01AE279 /* openrouter.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = openrouter.png; sourceTree = "<group>"; };
-		975DADBF734EB740F70FB589 /* ICloudMobileReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICloudMobileReader.swift; sourceTree = "<group>"; };
 		9A3D51447E71391BB1EBFD4B /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		A346605BA1128B929A612BD2 /* UsageCompanionApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageCompanionApp.swift; sourceTree = "<group>"; };
 		A7CE6A54D5F6BB5586F770A4 /* ProviderDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderDetailView.swift; sourceTree = "<group>"; };
@@ -177,7 +175,6 @@
 			isa = PBXGroup;
 			children = (
 				E7C23AC99241D148C4672756 /* AppConfiguration.swift */,
-				975DADBF734EB740F70FB589 /* ICloudMobileReader.swift */,
 			);
 			path = Infrastructure;
 			sourceTree = "<group>";
@@ -472,7 +469,6 @@
 				54D50C880E73014F7E0DC40B /* AppConfiguration.swift in Sources */,
 				1F1287DFC0848EEE88F6E2A0 /* DesignSystem.swift in Sources */,
 				AFA92C5C5DD67D1666FC7D32 /* HistoryView.swift in Sources */,
-				610C75F4EB4CA1DC37495A96 /* ICloudMobileReader.swift in Sources */,
 				49DE3716E88669068894314B /* MobileDashboardStore.swift in Sources */,
 				26519D2888BA98630E34147D /* OnboardingView.swift in Sources */,
 				E6ACE87E5B4917EFEC1FD477 /* PreviewFixtures.swift in Sources */,
