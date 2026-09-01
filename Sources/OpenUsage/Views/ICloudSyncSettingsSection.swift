@@ -79,7 +79,7 @@ struct ICloudSyncSettingsSection: View {
             inlineNotice(error)
         } else if let updatedAt = sync.mobileStatusUpdatedAt {
             TimelineView(.periodic(from: .now, by: 60)) { context in
-                Label("Shared \(relativeAge(updatedAt, now: context.date))", systemImage: "iphone")
+                Label("Shared \(Formatters.relativeAge(since: updatedAt, now: context.date))", systemImage: "iphone")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 12)
@@ -136,7 +136,7 @@ struct ICloudSyncSettingsSection: View {
                     }
                 }
                 TimelineView(.periodic(from: .now, by: 60)) { context in
-                    Text("Updated \(relativeAge(document.updatedAt, now: context.date))")
+                    Text("Updated \(Formatters.relativeAge(since: document.updatedAt, now: context.date))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -158,11 +158,4 @@ struct ICloudSyncSettingsSection: View {
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func relativeAge(_ date: Date, now: Date) -> String {
-        let seconds = max(0, now.timeIntervalSince(date))
-        if seconds < 60 { return "just now" }
-        if seconds < 3_600 { return "\(max(1, Int(seconds / 60)))m ago" }
-        if seconds < 86_400 { return "\(max(1, Int(seconds / 3_600)))h ago" }
-        return "\(max(1, Int(seconds / 86_400)))d ago"
-    }
 }

@@ -37,6 +37,9 @@ themselves** on each timeline refresh, so a widget keeps updating even if nobody
 budgets those refreshes, so expect a widget to be current within roughly 15 to 60 minutes rather than
 matching the Mac's five-minute cycle minute for minute.
 
+Relative reset and update times keep two useful units in the app (`1h 20m`). Home Screen widgets use a
+single unit (`1h`) where the same text has much less room.
+
 Whichever surface refreshed last writes the App Group cache, and the others render that cache while their
 own read is in flight. A failed read never blanks a widget: it keeps showing the last values it had and
 records the reason in the log.

@@ -152,15 +152,34 @@ enum MobileFormatting {
 
     static func reset(_ date: Date, now: Date = Date()) -> String {
         if date <= now { return "Reset due" }
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return "Resets \(formatter.localizedString(for: date, relativeTo: now))"
+        guard let duration = detailedDuration(date.timeIntervalSince(now), rounding: .up) else {
+            return "Reset due"
+        }
+        return "Resets in \(duration)"
     }
 
     static func age(_ date: Date, now: Date = Date()) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: date, relativeTo: now)
+        let seconds = max(0, now.timeIntervalSince(date))
+        guard seconds >= 60,
+              let duration = detailedDuration(seconds, rounding: .down) else { return "just now" }
+        return "\(duration) ago"
+    }
+
+    /// Two-unit relative duration for app surfaces with room for useful precision. Home Screen widgets
+    /// deliberately keep their separate one-unit formatter because their labels are width-constrained.
+    private static func detailedDuration(
+        _ seconds: TimeInterval,
+        rounding rule: FloatingPointRoundingRule
+    ) -> String? {
+        guard seconds.isFinite, seconds > 0 else { return nil }
+        let totalMinutes = max(1, Int((seconds / 60).rounded(rule)))
+        let days = totalMinutes / (24 * 60)
+        let hours = (totalMinutes % (24 * 60)) / 60
+        let minutes = totalMinutes % 60
+
+        if days > 0 { return "\(days)d \(hours)h" }
+        if hours > 0 { return minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h" }
+        return "\(minutes)m"
     }
 
     static func date(fromDayKey value: String) -> Date? {

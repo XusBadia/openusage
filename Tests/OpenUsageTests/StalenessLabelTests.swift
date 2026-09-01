@@ -20,9 +20,9 @@ final class StalenessLabelTests: XCTestCase {
 
     func testStaleSnapshotSurfacesOutdatedHint() {
         let store = makeStore()
-        store.snapshots["devin"] = snapshot(refreshedAt: now.addingTimeInterval(-3 * 60 * 60))
+        store.snapshots["devin"] = snapshot(refreshedAt: now.addingTimeInterval(-(3 * 60 * 60 + 20 * 60)))
         XCTAssertEqual(store.stalenessHint(for: "devin"),
-                       StalenessHint(label: "Outdated", tooltip: "Last updated 3h ago"))
+                       StalenessHint(label: "Outdated", tooltip: "Last updated 3h 20m ago"))
     }
 
     func testSnapshotExactlyAtThresholdIsStale() {

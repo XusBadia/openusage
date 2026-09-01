@@ -243,6 +243,15 @@ final class ResetDisplayTests: XCTestCase {
         XCTAssertEqual(Formatters.compactDuration(52 * 60), "52m")
     }
 
+    func testRelativeAgeKeepsMinutesWithoutRoundingUp() {
+        let now = Date(timeIntervalSince1970: 2_000_000_000)
+
+        XCTAssertEqual(Formatters.relativeAge(since: now.addingTimeInterval(-(80 * 60 + 59)), now: now),
+                       "1h 20m ago")
+        XCTAssertEqual(Formatters.relativeAge(since: now.addingTimeInterval(-59), now: now), "just now")
+        XCTAssertEqual(Formatters.relativeAge(since: now.addingTimeInterval(60), now: now), "just now")
+    }
+
     func testResetsPopoverContentResolvesEmptyCountOnlyAndTimeline() {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
 

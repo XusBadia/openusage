@@ -568,11 +568,13 @@ final class WidgetDataStore {
     /// stale. Reads the store's injected clock, which tests pin to a fixed value.
     func stalenessHint(for providerID: String) -> StalenessHint? {
         guard let refreshedAt = snapshots[providerID]?.refreshedAt else { return nil }
-        let age = now().timeIntervalSince(refreshedAt)
-        guard age >= Self.stalenessThreshold, let duration = Formatters.compactDuration(age) else {
-            return nil
-        }
-        return StalenessHint(label: "Outdated", tooltip: "Last updated \(duration) ago")
+        let currentDate = now()
+        let age = currentDate.timeIntervalSince(refreshedAt)
+        guard age >= Self.stalenessThreshold else { return nil }
+        return StalenessHint(
+            label: "Outdated",
+            tooltip: "Last updated \(Formatters.relativeAge(since: refreshedAt, now: currentDate))"
+        )
     }
 
     private func resolve(_ line: MetricLine, descriptor: WidgetDescriptor) -> WidgetData? {

@@ -78,9 +78,12 @@ enum WidgetFormatting {
 
     static func reset(_ date: Date, now: Date) -> String {
         guard date > now else { return "Reset due" }
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return "Resets \(formatter.localizedString(for: date, relativeTo: now))"
+        let totalMinutes = max(1, Int((date.timeIntervalSince(now) / 60).rounded(.up)))
+        let days = totalMinutes / (24 * 60)
+        if days > 0 { return "Resets in \(days)d" }
+        let hours = totalMinutes / 60
+        if hours > 0 { return "Resets in \(hours)h" }
+        return "Resets in \(totalMinutes)m"
     }
 }
 

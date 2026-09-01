@@ -4,6 +4,24 @@ import OpenUsageMobileCore
 
 @MainActor
 final class MobileDashboardStoreTests: XCTestCase {
+    func testRoomyRelativeTimesKeepTheMinuteRemainder() {
+        let now = Date(timeIntervalSince1970: 2_000_000_000)
+        let eightyMinutes: TimeInterval = 80 * 60
+
+        XCTAssertEqual(MobileFormatting.reset(now.addingTimeInterval(eightyMinutes), now: now),
+                       "Resets in 1h 20m")
+        XCTAssertEqual(MobileFormatting.age(now.addingTimeInterval(-eightyMinutes), now: now),
+                       "1h 20m ago")
+    }
+
+    func testRelativeTimeBoundariesStayFriendly() {
+        let now = Date(timeIntervalSince1970: 2_000_000_000)
+
+        XCTAssertEqual(MobileFormatting.reset(now, now: now), "Reset due")
+        XCTAssertEqual(MobileFormatting.age(now.addingTimeInterval(-59), now: now), "just now")
+        XCTAssertEqual(MobileFormatting.age(now.addingTimeInterval(60), now: now), "just now")
+    }
+
     func testRefreshResolvesNewestProviderAndBuildsHistory() async {
         let now = Date(timeIntervalSince1970: 2_000_000_000)
         let reader = TestMobileReader(result: .init(

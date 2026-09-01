@@ -17,7 +17,8 @@ Settings lives inside the popover — there is no separate window. Open it from 
 **Sync Across Macs** is off by default. Turning it on shares normalized OpenUsage history through the
 app's private iCloud container and combines machine-local tokens and spend across Macs signed into the
 same iCloud account. Settings shows the five-minute write cadence and each Mac's relative **Updated**
-time; it also reports unavailable iCloud, loading, write, and malformed-file states. See
+time with the minute remainder when useful (for example, `1h 20m`); it also reports unavailable iCloud,
+loading, write, and malformed-file states. See
 [iCloud Sync](icloud-sync.md) for what is included and which surfaces use the combined values.
 
 ## Appearance

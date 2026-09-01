@@ -86,9 +86,12 @@ enum Formatters {
     /// Compact "Xd Yh" / "Xh Ym" / "Xm" duration. At the day scale it always shows two units — the
     /// hours ride along even when zero ("4d 0h") — so a span 4 days + 52 min out never reads as a flat
     /// "4d" that hides the sub-day remainder. Minutes are dropped at the day scale.
-    static func compactDuration(_ seconds: TimeInterval) -> String? {
+    static func compactDuration(
+        _ seconds: TimeInterval,
+        rounding rule: FloatingPointRoundingRule = .up
+    ) -> String? {
         guard seconds.isFinite, seconds > 0 else { return nil }
-        let totalMinutes = max(1, Int((seconds / 60).rounded(.up)))
+        let totalMinutes = max(1, Int((seconds / 60).rounded(rule)))
         let days = totalMinutes / (24 * 60)
         let hours = (totalMinutes % (24 * 60)) / 60
         let minutes = totalMinutes % 60
@@ -100,5 +103,15 @@ enum Formatters {
             return minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h"
         }
         return "\(minutes)m"
+    }
+
+    /// Elapsed age for roomy labels and tooltips. Unlike reset countdowns, ages round down so an item
+    /// does not claim to be older than it is. Durations over an hour keep the minute remainder instead
+    /// of collapsing an age such as 1h 20m to a coarse 1h.
+    static func relativeAge(since date: Date, now: Date = Date()) -> String {
+        let seconds = max(0, now.timeIntervalSince(date))
+        guard seconds >= 60,
+              let duration = compactDuration(seconds, rounding: .down) else { return "just now" }
+        return "\(duration) ago"
     }
 }
