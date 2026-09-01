@@ -11,6 +11,14 @@ setting enabled writes a read-only mobile snapshot to `OpenUsage/Mobile/v1/<devi
 companion and its widgets pick the newest copy of each provider across the available Macs. Turning history sync on does
 not turn mobile sharing on.
 
+The maintainer's TestFlight app is signed by a different Apple team from the official macOS release, so
+it cannot open the official app's private iCloud container directly. `OpenUsage Mobile Bridge` solves
+that without modifying the official app: it reads `/v1/limits` and `/v1/usage` from the loopback-only API
+and writes the sanitized mobile snapshot to `iCloud.me.badia.ailimits`. Installing the bridge is the
+explicit opt-in for this path. It updates every five minutes while the official app keeps its normal
+Sparkle updates. When official history sync is on, the bridge also mirrors compatible history files into
+the companion container.
+
 The mobile snapshot contains numeric quotas, reset dates, balances, plan names, source freshness, and a
 coarse availability status. It excludes credentials, email addresses, account and organization IDs,
 prompts, logs, model names, raw errors, and provider responses. Each metric is named with the same title
@@ -99,4 +107,4 @@ write has not completed. The Settings error and app log distinguish those cases;
 appears while an iCloud read or write is actually in progress.
 
 The iOS companion uses identifiers owned by the team that signs it. See [iOS companion](ios-app.md) for
-the Xcode project, App Group, iCloud container, and TestFlight setup.
+the Xcode project, bridge, App Group, iCloud container, and TestFlight setup.

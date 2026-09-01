@@ -4,9 +4,11 @@
 reset times, recent token and cost history, source freshness, and the Macs publishing data. It reads data
 from iCloud and never contacts a provider.
 
-The Mac app publishes mobile status only after the user enables **Share Usage With Mobile Devices** in
-OpenUsage Settings. History sync and mobile status sharing use separate consent switches. See
-[iCloud sync](icloud-sync.md) for the stored fields and privacy boundary.
+When both apps belong to the same Apple team, the Mac app can publish directly after the user enables
+**Share Usage With Mobile Devices** in OpenUsage Settings. The maintainer's TestFlight build instead uses
+the signed **OpenUsage Mobile Bridge**: it reads the official Mac app's read-only loopback API and writes
+the same sanitized document into the companion's iCloud container. See [iCloud sync](icloud-sync.md) for
+the stored fields and privacy boundary.
 
 ## Project layout
 
@@ -17,6 +19,10 @@ OpenUsage Settings. History sync and mobile status sharing use separate consent 
   widgets use the same selection.
 - `Sources/OpenUsageMobileCore/` contains the shared document contract, the resolvers, and the iCloud
   reader the app and the widgets both run.
+- `Sources/OpenUsageMobileBridgeCore/` maps the official app's local API to that mobile contract and
+  publishes it to the TestFlight container.
+- `Sources/OpenUsageMobileBridge/` is the small macOS menu-bar process that runs that sync every five
+  minutes.
 - `Mobile/Config/` contains build identifiers and entitlements.
 
 Run XcodeGen after changing targets, resources, plist values, or entitlements:
@@ -111,9 +117,25 @@ iCloud container **and** the App Group to both the app and the widget App IDs â€
 iCloud on its own, so a profile without the container makes its timelines fall back to the cache forever.
 Xcode then creates or updates the provisioning profiles.
 
-The Mac and iOS builds must use the same iCloud container to exchange files. A third-party TestFlight can
-use its own container, bundle IDs, App Group, signing team, display name, and icon. The OpenUsage
-maintainers can point an authorized build at the official identifiers and branding.
+The process that writes the companion document and the iOS build must use the same iCloud container. If
+the official Mac app is signed by a different Apple team, install the bridge signed by the companion's
+team instead of replacing or re-signing OpenUsage. A third-party TestFlight can use its own container,
+bundle IDs, App Group, signing team, display name, and icon.
+
+## Mac bridge
+
+The bridge leaves `/Applications/OpenUsage.app` untouched, so Sparkle continues to update the official
+Mac app. It contacts only `http://127.0.0.1:6736`, publishes no credentials or raw provider responses,
+and starts at login. Build and install the maintainer configuration with:
+
+```bash
+./script/build_mobile_bridge.sh install
+```
+
+The installed Developer ID profile must allow `me.badia.ailimits.collector` and
+`iCloud.me.badia.ailimits`. The menu-bar phone icon shows the last sync result and offers **Sync Now**.
+If OpenUsage's history sync is enabled, compatible history documents are mirrored as well; quota and
+balance updates do not depend on history sync.
 
 ## Build and test
 
@@ -149,3 +171,19 @@ upstream maintainers to share our record or certificates.
 The source code uses the MIT license. `TRADEMARK.md` reserves the OpenUsage name and logo, so third-party
 publishers must replace the default product identity or obtain permission. The default name and icon are
 ready for the OpenUsage maintainers to use in an official build.
+
+The `iOS TestFlight` GitHub Actions workflow archives, validates, and uploads the app. Configure these
+secrets in the repository that runs the workflow:
+
+- `IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64`
+- `IOS_DISTRIBUTION_CERTIFICATE_PASSWORD`
+- `IOS_APP_PROFILE_BASE64`
+- `IOS_WIDGET_PROFILE_BASE64`
+- `APP_STORE_CONNECT_API_KEY_P8_BASE64`
+- `APP_STORE_CONNECT_KEY_ID`
+- `APP_STORE_CONNECT_ISSUER_ID`
+
+Every run uses the GitHub run number as `CFBundleVersion`, so TestFlight receives a distinct update. Use
+the manual workflow input to choose the user-facing version; the default is `0.1.0`. Distribution IDs and
+profile names live in `Mobile/Config/TestFlight.xcconfig`, and export settings live in
+`Mobile/Config/ExportOptions-TestFlight.plist`.

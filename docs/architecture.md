@@ -18,6 +18,9 @@ XcodeGen project for the iOS companion and its WidgetKit extension. The code is 
 - `Views/` — the SwiftUI screens (dashboard, customize, settings, menu-bar strip).
 - `OpenUsageMobileCore/` — the sanitized mobile contract, multi-Mac resolver, history aggregation, and
   App Group cache shared by the iOS app and widgets.
+- `OpenUsageMobileBridgeCore/` — the independent mapper and iCloud publisher used when the companion and
+  the official Mac app belong to different Apple teams.
+- `OpenUsageMobileBridge/` — the bridge's AppKit menu-bar executable and five-minute refresh loop.
 - `Mobile/` — the iOS app, widget extension, signing configuration, and generated Xcode project.
 
 ## Composition root
@@ -102,8 +105,14 @@ the existing history files.
 
 The iOS app reads mobile and history documents from the shared iCloud container. It resolves each
 provider from the freshest Mac, caches the resolved view in an App Group, and asks WidgetKit to reload.
-Widgets read that cache, so they do not start iCloud coordination or contact a provider. The iOS app is
-read-only and cannot wake a Mac.
+Widgets also read iCloud on their own timeline refreshes and use that App Group cache while the read is in
+flight or if it fails. Neither iOS process contacts a provider or can wake a Mac.
+
+Apple only allows a signed app to use containers assigned to its own team. For the maintainer's
+TestFlight build, `OpenUsage Mobile Bridge` is signed by that iOS team and owns the matching companion
+container. It reads the official Mac app's sanitized loopback endpoints, maps them into
+`openusage.mobile.v1`, and publishes on the same five-minute cadence. This keeps the official
+`/Applications/OpenUsage.app` bundle, signature, and Sparkle updater unchanged.
 
 ## Platform support
 

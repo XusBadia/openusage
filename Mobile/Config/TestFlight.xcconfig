@@ -1,0 +1,13 @@
+// Distribution identifiers for the TestFlight companion owned by the maintainer's Apple team.
+// Certificates, profiles, and App Store Connect keys are installed by the release workflow.
+MOBILE_DISPLAY_NAME = OpenUsage
+MOBILE_APP_BUNDLE_ID = me.badia.ailimits
+MOBILE_WIDGET_BUNDLE_ID = me.badia.ailimits.widgets
+MOBILE_DEVELOPMENT_TEAM = 9L2TD7KVV9
+ICLOUD_CONTAINER_IDENTIFIER = iCloud.me.badia.ailimits
+APP_GROUP_IDENTIFIER = group.me.badia.ailimits
+MOBILE_CODE_SIGN_STYLE = Manual
+MOBILE_CODE_SIGN_IDENTITY = Apple Distribution
+MOBILE_APP_PROVISIONING_PROFILE = AI Limits App Store v2
+MOBILE_WIDGET_PROVISIONING_PROFILE = AI Limits Widgets App Store v3
+MARKETING_VERSION = 0.1.0

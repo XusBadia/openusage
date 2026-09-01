@@ -12,6 +12,7 @@ let package = Package(
     products: [
         .executable(name: "OpenUsage", targets: ["OpenUsageApp"]),
         .executable(name: "openusage-cli", targets: ["OpenUsageCLI"]),
+        .executable(name: "openusage-mobile-bridge", targets: ["OpenUsageMobileBridge"]),
         .library(name: "OpenUsageMobileCore", targets: ["OpenUsageMobileCore"])
     ],
     dependencies: [
@@ -66,6 +67,22 @@ let package = Package(
                 .swiftLanguageMode(.v6)
             ]
         ),
+        .target(
+            name: "OpenUsageMobileBridgeCore",
+            dependencies: ["OpenUsageMobileCore"],
+            path: "Sources/OpenUsageMobileBridgeCore",
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        .executableTarget(
+            name: "OpenUsageMobileBridge",
+            dependencies: ["OpenUsageMobileBridgeCore", "OpenUsageMobileCore"],
+            path: "Sources/OpenUsageMobileBridge",
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
         .testTarget(
             name: "OpenUsageTests",
             dependencies: ["OpenUsage", "OpenUsageMobileCore"],
@@ -86,6 +103,14 @@ let package = Package(
             name: "OpenUsageMobileCoreTests",
             dependencies: ["OpenUsageMobileCore"],
             path: "Tests/OpenUsageMobileCoreTests",
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        .testTarget(
+            name: "OpenUsageMobileBridgeCoreTests",
+            dependencies: ["OpenUsageMobileBridgeCore", "OpenUsageMobileCore"],
+            path: "Tests/OpenUsageMobileBridgeCoreTests",
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]
