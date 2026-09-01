@@ -183,7 +183,8 @@ secrets in the repository that runs the workflow:
 - `APP_STORE_CONNECT_KEY_ID`
 - `APP_STORE_CONNECT_ISSUER_ID`
 
-Every run uses the GitHub run number as `CFBundleVersion`, so TestFlight receives a distinct update. Use
-the manual workflow input to choose the user-facing version; the default is `0.1.0`. Distribution IDs and
-profile names live in `Mobile/Config/TestFlight.xcconfig`, and export settings live in
+Every run uses `1000 +` the GitHub run number as `CFBundleVersion`, so it stays above the earlier manual
+builds and TestFlight receives a distinct update. Use the manual workflow input to choose the user-facing
+version; the default is `0.1.0`. Distribution IDs and profile names live in
+`Mobile/Config/TestFlight.xcconfig`, and export settings live in
 `Mobile/Config/ExportOptions-TestFlight.plist`.
