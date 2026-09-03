@@ -1,8 +1,12 @@
 import OpenUsageMobileCore
 import SwiftUI
+import UserNotifications
+import UIKit
 
 struct SettingsView: View {
     @Environment(MobileDashboardStore.self) private var store
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var notificationAuthorization: UNAuthorizationStatus = .notDetermined
 
     var body: some View {
         @Bindable var store = store
@@ -50,6 +54,58 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Notifications") {
+                Toggle(
+                    "Usage Alerts",
+                    isOn: Binding(
+                        get: { store.notificationSettings.isEnabled },
+                        set: { setNotificationsEnabled($0) }
+                    )
+                )
+
+                if store.notificationSettings.isEnabled {
+                    NavigationLink {
+                        NotificationProviderSettingsView()
+                    } label: {
+                        LabeledContent {
+                            Text(providerAlertSummary)
+                                .foregroundStyle(.secondary)
+                        } label: {
+                            Label("Provider Alerts", systemImage: "bell.badge")
+                        }
+                    }
+
+                    Toggle(
+                        "Sounds",
+                        isOn: Binding(
+                            get: { store.notificationSettings.soundEnabled },
+                            set: { store.setNotificationSoundEnabled($0) }
+                        )
+                    )
+
+                    if !notificationsAreAuthorized {
+                        Label(
+                            notificationAuthorization == .denied
+                                ? "Notifications are off in iOS Settings"
+                                : "Notification permission is required",
+                            systemImage: "exclamationmark.triangle"
+                        )
+                        .foregroundStyle(.orange)
+
+                        Button(notificationPermissionButtonTitle) {
+                            Task { await requestNotificationAuthorization() }
+                        }
+                    }
+                }
+
+                Text(
+                    "Alerts are checked when OpenUsage or one of its widgets refreshes iCloud. "
+                        + "Each quota alerts once at your chosen threshold and again if it is exhausted."
+                )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Privacy") {
                 Toggle(
                     "Hide Costs and Balances",
@@ -87,6 +143,96 @@ struct SettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Settings")
+        .task { await refreshNotificationAuthorization() }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task { await refreshNotificationAuthorization() }
+        }
+    }
+
+    private var providerAlertSummary: String {
+        let enabled = store.customizableProviders.filter {
+            store.notificationSettings(for: $0.provider.providerID).isEnabled
+        }.count
+        return "\(enabled) of \(store.customizableProviders.count)"
+    }
+
+    private var notificationsAreAuthorized: Bool {
+        switch notificationAuthorization {
+        case .authorized, .provisional, .ephemeral: true
+        default: false
+        }
+    }
+
+    private var notificationPermissionButtonTitle: String {
+        notificationAuthorization == .denied ? "Open Notification Settings" : "Allow Notifications"
+    }
+
+    private func setNotificationsEnabled(_ enabled: Bool) {
+        store.setNotificationsEnabled(enabled)
+        guard enabled else { return }
+        Task { await requestNotificationAuthorization() }
+    }
+
+    private func requestNotificationAuthorization() async {
+        if notificationAuthorization == .denied {
+            await UIApplication.shared.open(URL(string: UIApplication.openNotificationSettingsURLString)!)
+            return
+        }
+        do {
+            _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+        } catch {
+            // The status row stays visible; returning to Settings retries the live system status.
+        }
+        await refreshNotificationAuthorization()
+    }
+
+    private func refreshNotificationAuthorization() async {
+        notificationAuthorization = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+    }
+}
+
+private struct NotificationProviderSettingsView: View {
+    @Environment(MobileDashboardStore.self) private var store
+
+    var body: some View {
+        List {
+            ForEach(store.customizableProviders) { source in
+                let provider = source.provider
+                let settings = store.notificationSettings(for: provider.providerID)
+                Section {
+                    Toggle(
+                        "Usage Alerts",
+                        isOn: Binding(
+                            get: { store.notificationSettings(for: provider.providerID).isEnabled },
+                            set: { store.setProviderNotifications(provider.providerID, isEnabled: $0) }
+                        )
+                    )
+                    Picker(
+                        "Notify At",
+                        selection: Binding(
+                            get: { store.notificationSettings(for: provider.providerID).threshold },
+                            set: { store.setNotificationThreshold($0, for: provider.providerID) }
+                        )
+                    ) {
+                        ForEach(MobileUsageAlertThreshold.allCases) { threshold in
+                            Text(threshold.title).tag(threshold)
+                        }
+                    }
+                    .disabled(!settings.isEnabled)
+                } header: {
+                    Label {
+                        Text(provider.displayName)
+                    } icon: {
+                        ProviderIconView(providerID: provider.providerID, size: 22)
+                    }
+                } footer: {
+                    Text("Also alerts if a visible quota reaches its limit.")
+                }
+            }
+        }
+        .navigationTitle("Provider Alerts")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

@@ -36,6 +36,7 @@ final class MobileDashboardStore {
     private(set) var isRefreshing = false
     private(set) var hidesFinancialValues: Bool
     private(set) var providerDisplaySettings: MobileProviderDisplaySettings
+    private(set) var notificationSettings: MobileNotificationSettings
 
     init(
         reader: any MobileSnapshotReading = ICloudMobileReader(),
@@ -47,6 +48,7 @@ final class MobileDashboardStore {
         self.usesPreviewData = usesPreviewData
         self.hidesFinancialValues = sharedStore.hidesFinancialValues
         self.providerDisplaySettings = sharedStore.providerDisplaySettings
+        self.notificationSettings = sharedStore.notificationSettings
 
         if usesPreviewData {
             apply(PreviewFixtures.make())
@@ -133,6 +135,10 @@ final class MobileDashboardStore {
             lastReadAt = Date()
             refreshNotice = nil
             phase = resolved.isEmpty ? .waitingForMac : .content
+            await MobileQuotaNotificationScheduler.shared.evaluateAndSchedule(
+                snapshot: refresh.snapshot,
+                store: sharedStore
+            )
             WidgetCenter.shared.reloadAllTimelines()
         } catch {
             refreshNotice = error.localizedDescription
@@ -146,6 +152,35 @@ final class MobileDashboardStore {
         hidesFinancialValues = value
         sharedStore.hidesFinancialValues = value
         WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    func setNotificationsEnabled(_ value: Bool) {
+        if value, !notificationSettings.isEnabled {
+            // Opting in establishes a fresh baseline on the next iCloud read. Old changes must not
+            // arrive as a burst of alerts immediately after permission is granted.
+            sharedStore.resetQuotaNotificationState()
+        }
+        notificationSettings.isEnabled = value
+        persistNotificationSettings()
+    }
+
+    func setNotificationSoundEnabled(_ value: Bool) {
+        notificationSettings.soundEnabled = value
+        persistNotificationSettings()
+    }
+
+    func notificationSettings(for providerID: String) -> MobileProviderNotificationSettings {
+        notificationSettings.settings(for: providerID)
+    }
+
+    func setProviderNotifications(_ providerID: String, isEnabled: Bool) {
+        notificationSettings.updateProvider(providerID) { $0.isEnabled = isEnabled }
+        persistNotificationSettings()
+    }
+
+    func setNotificationThreshold(_ threshold: MobileUsageAlertThreshold, for providerID: String) {
+        notificationSettings.updateProvider(providerID) { $0.threshold = threshold }
+        persistNotificationSettings()
     }
 
     func setProvider(_ providerID: String, isVisible: Bool) {
@@ -241,6 +276,10 @@ final class MobileDashboardStore {
     private func persistProviderDisplaySettings() {
         sharedStore.providerDisplaySettings = providerDisplaySettings
         WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    private func persistNotificationSettings() {
+        sharedStore.notificationSettings = notificationSettings
     }
 
     private static func resolveDevices(

@@ -26,7 +26,12 @@ enum WidgetDataAccess {
     /// widget, and says so in the log.
     static func currentSnapshot() async -> MobileSharedSnapshot? {
         do {
-            return try await MobileSnapshotSync.refresh(reader: ICloudMobileReader(), store: store).snapshot
+            let snapshot = try await MobileSnapshotSync.refresh(
+                reader: ICloudMobileReader(),
+                store: store
+            ).snapshot
+            await MobileQuotaNotificationScheduler.shared.evaluateAndSchedule(snapshot: snapshot, store: store)
+            return snapshot
         } catch {
             logger.warning("Widget refresh fell back to the cached snapshot: \(error.localizedDescription, privacy: .public)")
             return cachedSnapshot()

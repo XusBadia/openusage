@@ -52,6 +52,18 @@ Whichever surface refreshed last writes the App Group cache, and the others rend
 own read is in flight. A failed read never blanks a widget: it keeps showing the last values it had and
 records the reason in the log.
 
+## Usage notifications
+
+**Settings › Usage Alerts** enables local notifications. Permission is requested only after the switch
+is turned on. Each provider can be muted independently and can alert at 80%, 90%, or 95% used. A visible
+quota sends one alert when it crosses that threshold and one more if it is exhausted; both are deduped
+for the quota's reset window.
+
+The app and its widgets evaluate alerts after a successful iCloud read, so alerts can arrive from a
+WidgetKit background refresh without opening the app. iOS decides when widgets run, so notification
+timing follows the same roughly 15-to-60-minute refresh budget as widget data. Turning alerts on primes
+the current values first instead of sending notifications for limits that were already high.
+
 Both the app and the widget extension therefore need the iCloud container in their entitlements and in
 their provisioning profiles.
 
