@@ -36,13 +36,21 @@ struct UsageOverviewTimelineProvider: AppIntentTimelineProvider {
     }
 
     func timeline(for configuration: UsageOverviewIntent, in context: Context) async -> Timeline<UsageOverviewEntry> {
-        let entry = entry(for: configuration, from: await WidgetDataAccess.currentSnapshot())
-        return Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(15 * 60)))
+        let snapshot = await WidgetDataAccess.currentSnapshot()
+        let start = Date()
+        let entries = WidgetTimelineSchedule.dates(startingAt: start).map { date in
+            entry(for: configuration, from: snapshot, date: date)
+        }
+        return Timeline(
+            entries: entries,
+            policy: .after(start.addingTimeInterval(WidgetTimelineSchedule.reloadInterval))
+        )
     }
 
     private func entry(
         for configuration: UsageOverviewIntent,
-        from snapshot: MobileSharedSnapshot?
+        from snapshot: MobileSharedSnapshot?,
+        date: Date = .now
     ) -> UsageOverviewEntry {
         let settings = WidgetDataAccess.displaySettings
         var providers = WidgetDataAccess.providers(in: snapshot)
@@ -53,7 +61,7 @@ struct UsageOverviewTimelineProvider: AppIntentTimelineProvider {
             providers = providers.filter { wanted.contains($0.provider.providerID) }
         }
         return UsageOverviewEntry(
-            date: .now,
+            date: date,
             providers: Array(
                 settings.sortedProviders(providers, by: configuration.sort.sort).prefix(usageOverviewMaximumRows)
             ),
@@ -164,15 +172,26 @@ private struct UsageOverviewWidgetView: View {
                 if entry.detail == .expanded, !card.secondary.isEmpty {
                     HStack(spacing: 12) {
                         ForEach(card.secondary.prefix(2)) { metric in
-                            Text("\(metric.label) \(WidgetFormatting.remaining(metric, hidesFinancialValues: entry.hidesFinancialValues))")
+                            Text(secondarySummary(metric))
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
                 }
             }
         }
+    }
+
+    private func secondarySummary(_ metric: MobileUsageMetric) -> String {
+        var summary = "\(metric.label) "
+            + WidgetFormatting.remaining(metric, hidesFinancialValues: entry.hidesFinancialValues)
+        if entry.showsResets, let reset = metric.resetsAt {
+            summary += " · \(WidgetFormatting.resetCountdown(reset, now: entry.date))"
+        }
+        return summary
     }
 
     @ViewBuilder

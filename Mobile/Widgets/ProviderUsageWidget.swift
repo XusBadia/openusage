@@ -28,17 +28,25 @@ struct ProviderUsageTimelineProvider: AppIntentTimelineProvider {
     }
 
     func timeline(for configuration: ProviderWidgetIntent, in context: Context) async -> Timeline<ProviderUsageEntry> {
-        let entry = entry(for: configuration, snapshot: await WidgetDataAccess.currentSnapshot())
-        return Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(15 * 60)))
+        let snapshot = await WidgetDataAccess.currentSnapshot()
+        let start = Date()
+        let entries = WidgetTimelineSchedule.dates(startingAt: start).map { date in
+            entry(for: configuration, snapshot: snapshot, date: date)
+        }
+        return Timeline(
+            entries: entries,
+            policy: .after(start.addingTimeInterval(WidgetTimelineSchedule.reloadInterval))
+        )
     }
 
     private func entry(
         for configuration: ProviderWidgetIntent,
-        snapshot: MobileSharedSnapshot?
+        snapshot: MobileSharedSnapshot?,
+        date: Date = .now
     ) -> ProviderUsageEntry {
         let source = WidgetDataAccess.provider(id: configuration.provider?.id, in: snapshot)
         return ProviderUsageEntry(
-            date: .now,
+            date: date,
             provider: source,
             metrics: source.map {
                 WidgetDataAccess.displaySettings.cardMetrics(
@@ -155,6 +163,13 @@ private struct ProviderUsageWidgetView: View {
                 .font(.caption.weight(.semibold).monospacedDigit())
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
+            if let reset = metric.resetsAt {
+                Text(WidgetFormatting.reset(reset, now: entry.date))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

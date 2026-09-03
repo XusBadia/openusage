@@ -17,6 +17,15 @@ enum WidgetPreviewFixtures {
                     limit: 100,
                     unit: MobileMetricUnit(kind: .percent),
                     resetsAt: Date().addingTimeInterval(2.5 * 3_600)
+                ),
+                MobileUsageMetric(
+                    id: "\(id).weekly",
+                    label: "Weekly",
+                    presentation: .progress,
+                    used: 0,
+                    limit: 100,
+                    unit: MobileMetricUnit(kind: .percent),
+                    resetsAt: Date().addingTimeInterval(4.5 * 86_400)
                 )
             ]
         )

@@ -26,18 +26,22 @@ final class MobileUsageDocumentBuilderTests: XCTestCase {
         XCTAssertEqual(provider.displayName, "Claude")
         XCTAssertEqual(provider.status, .attention)
         XCTAssertEqual(provider.plan, "Max")
-        XCTAssertEqual(provider.metrics.count, 4)
+        XCTAssertEqual(provider.metrics.count, 5)
         XCTAssertEqual(provider.metrics.first?.remainingFraction, 0.76)
+        let weekly = try XCTUnwrap(provider.metrics.first { $0.id == "claude@deadbeef.weekly" })
+        XCTAssertEqual(weekly.remainingFraction, 1)
+        XCTAssertEqual(weekly.resetsAt, Date(timeIntervalSince1970: 7_200))
         // A registered descriptor names the metric, and the id is derived from that name so a phone's
         // saved metric order survives the Mac publishing one more line.
-        XCTAssertEqual(provider.metrics.map(\.label), ["Session", "Today", "Quota 3", "Usage 4"])
+        XCTAssertEqual(provider.metrics.map(\.label), ["Session", "Weekly", "Today", "Quota 4", "Usage 5"])
         XCTAssertEqual(
             provider.metrics.map(\.id),
             [
                 "claude@deadbeef.session",
+                "claude@deadbeef.weekly",
                 "claude@deadbeef.today",
-                "claude@deadbeef.quota-3",
-                "claude@deadbeef.usage-4"
+                "claude@deadbeef.quota-4",
+                "claude@deadbeef.usage-5"
             ]
         )
 
@@ -70,7 +74,10 @@ private final class MobileSnapshotRuntime: ProviderRuntime {
         icon: .providerMark("claude")
     )
     var widgetDescriptors: [WidgetDescriptor] {
-        [.percent(id: "\(provider.id).session", provider: provider, title: "Session")]
+        [
+            .percent(id: "\(provider.id).session", provider: provider, title: "Session"),
+            .percent(id: "\(provider.id).weekly", provider: provider, title: "Weekly"),
+        ]
             + WidgetDescriptor.spendTiles(provider: provider)
     }
 
@@ -86,6 +93,15 @@ private final class MobileSnapshotRuntime: ProviderRuntime {
                     limit: 100,
                     format: .percent,
                     resetsAt: Date(timeIntervalSince1970: 3_600),
+                    colorHex: "#D97757"
+                ),
+                .progress(
+                    label: "Weekly",
+                    used: 0,
+                    limit: 100,
+                    format: .percent,
+                    resetsAt: Date(timeIntervalSince1970: 7_200),
+                    periodDurationMs: MetricPeriod.weekMs,
                     colorHex: "#D97757"
                 ),
                 .values(

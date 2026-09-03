@@ -77,13 +77,33 @@ enum WidgetFormatting {
     }
 
     static func reset(_ date: Date, now: Date) -> String {
-        guard date > now else { return "Reset due" }
+        let countdown = resetCountdown(date, now: now)
+        return countdown == "due" ? "Reset due" : "Resets in \(countdown)"
+    }
+
+    /// Bare one-unit duration for dense rows that already carry the metric name and reset context.
+    static func resetCountdown(_ date: Date, now: Date) -> String {
+        guard date > now else { return "due" }
         let totalMinutes = max(1, Int((date.timeIntervalSince(now) / 60).rounded(.up)))
         let days = totalMinutes / (24 * 60)
-        if days > 0 { return "Resets in \(days)d" }
+        if days > 0 { return "\(days)d" }
         let hours = totalMinutes / 60
-        if hours > 0 { return "Resets in \(hours)h" }
-        return "Resets in \(totalMinutes)m"
+        if hours > 0 { return "\(hours)h" }
+        return "\(totalMinutes)m"
+    }
+}
+
+/// WidgetKit only re-runs the provider read on its refresh budget. Minute-spaced entries keep the
+/// already-fetched reset deadlines moving between those reads without contacting iCloud again.
+enum WidgetTimelineSchedule {
+    static let reloadInterval: TimeInterval = 15 * 60
+    private static let countdownInterval: TimeInterval = 60
+
+    static func dates(startingAt start: Date) -> [Date] {
+        let entryCount = Int(reloadInterval / countdownInterval)
+        return (0..<entryCount).map { offset in
+            start.addingTimeInterval(TimeInterval(offset) * countdownInterval)
+        }
     }
 }
 

@@ -22,6 +22,23 @@ final class MobileDashboardStoreTests: XCTestCase {
         XCTAssertEqual(MobileFormatting.age(now.addingTimeInterval(60), now: now), "just now")
     }
 
+    func testFullQuotaKeepsItsResetCountdown() {
+        let now = Date(timeIntervalSince1970: 2_000_000_000)
+        let reset = now.addingTimeInterval(80 * 60)
+        let metric = MobileUsageMetric(
+            id: "claude.weekly",
+            label: "Weekly",
+            presentation: .progress,
+            used: 0,
+            limit: 100,
+            unit: MobileMetricUnit(kind: .percent),
+            resetsAt: reset
+        )
+
+        XCTAssertEqual(MobileFormatting.remaining(metric), "100% available")
+        XCTAssertEqual(metric.resetsAt.map { MobileFormatting.reset($0, now: now) }, "Resets in 1h 20m")
+    }
+
     func testRefreshResolvesNewestProviderAndBuildsHistory() async {
         let now = Date(timeIntervalSince1970: 2_000_000_000)
         let reader = TestMobileReader(result: .init(

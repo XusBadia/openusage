@@ -10,10 +10,16 @@ struct ProviderCardView: View {
     private var cardMetrics: MobileProviderCardMetrics { displaySettings.cardMetrics(for: provider) }
 
     var body: some View {
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            card(now: context.date)
+        }
+    }
+
+    private func card(now: Date) -> some View {
         VStack(alignment: .leading, spacing: 18) {
             header
             if let headline = cardMetrics.headline {
-                primaryMetric(headline)
+                primaryMetric(headline, now: now)
             } else {
                 Text(emptyStateText)
                     .font(.title3.weight(.semibold))
@@ -22,9 +28,9 @@ struct ProviderCardView: View {
             let secondary = cardMetrics.secondary
             if !secondary.isEmpty {
                 Divider()
-                secondaryGrid(secondary)
+                secondaryGrid(secondary, now: now)
             }
-            footer
+            footer(now: now)
         }
         .padding(20)
         .cardSurface()
@@ -82,7 +88,7 @@ struct ProviderCardView: View {
         }
     }
 
-    private func primaryMetric(_ metric: MobileUsageMetric) -> some View {
+    private func primaryMetric(_ metric: MobileUsageMetric, now: Date) -> some View {
         VStack(alignment: .leading, spacing: 11) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 3) {
@@ -98,7 +104,7 @@ struct ProviderCardView: View {
                 }
                 Spacer(minLength: 12)
                 if let reset = metric.resetsAt {
-                    Text(MobileFormatting.reset(reset))
+                    Text(MobileFormatting.reset(reset, now: now))
                         .font(.caption.weight(.medium))
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.trailing)
@@ -122,7 +128,7 @@ struct ProviderCardView: View {
 
     /// Two metrics per row, so a Detailed card grows downward instead of squeezing every metric into one
     /// line. Rows keep the vertical rule between the two columns the Standard card has always used.
-    private func secondaryGrid(_ metrics: [MobileUsageMetric]) -> some View {
+    private func secondaryGrid(_ metrics: [MobileUsageMetric], now: Date) -> some View {
         let rows = stride(from: 0, to: metrics.count, by: 2).map { start in
             Array(metrics[start..<min(start + 2, metrics.count)])
         }
@@ -130,10 +136,10 @@ struct ProviderCardView: View {
             ForEach(Array(rows.enumerated()), id: \.offset) { offset, row in
                 if offset > 0 { Divider() }
                 HStack(spacing: 18) {
-                    secondaryMetric(row[0])
+                    secondaryMetric(row[0], now: now)
                     if row.count > 1 {
                         Divider().frame(height: 34)
-                        secondaryMetric(row[1])
+                        secondaryMetric(row[1], now: now)
                     } else {
                         Color.clear.frame(maxWidth: .infinity)
                     }
@@ -142,7 +148,7 @@ struct ProviderCardView: View {
         }
     }
 
-    private func secondaryMetric(_ metric: MobileUsageMetric) -> some View {
+    private func secondaryMetric(_ metric: MobileUsageMetric, now: Date) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(metric.label).font(.caption).foregroundStyle(.secondary)
             Text(MobileFormatting.remaining(metric, hidesFinancialValues: hidesFinancialValues))
@@ -150,7 +156,7 @@ struct ProviderCardView: View {
                 .foregroundStyle(.primary)
                 .lineLimit(1)
             if let reset = metric.resetsAt {
-                Text(MobileFormatting.reset(reset))
+                Text(MobileFormatting.reset(reset, now: now))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -160,16 +166,14 @@ struct ProviderCardView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private var footer: some View {
-        TimelineView(.periodic(from: .now, by: 60)) { context in
-            Label {
-                Text("From \(source.deviceName) · \(MobileFormatting.age(provider.refreshedAt, now: context.date))")
-            } icon: {
-                Image(systemName: "laptopcomputer")
-            }
-            .font(.caption2)
-            .foregroundStyle(context.date.timeIntervalSince(provider.refreshedAt) >= 3_600 ? Color.orange : Color.secondary)
-            .lineLimit(1)
+    private func footer(now: Date) -> some View {
+        Label {
+            Text("From \(source.deviceName) · \(MobileFormatting.age(provider.refreshedAt, now: now))")
+        } icon: {
+            Image(systemName: "laptopcomputer")
         }
+        .font(.caption2)
+        .foregroundStyle(now.timeIntervalSince(provider.refreshedAt) >= 3_600 ? Color.orange : Color.secondary)
+        .lineLimit(1)
     }
 }

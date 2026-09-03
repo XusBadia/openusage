@@ -25,7 +25,7 @@ enum PreviewFixtures {
                     accent: "#D97757",
                     sessionUsed: 31,
                     sessionReset: now.addingTimeInterval(2 * 3_600 + 44 * 60),
-                    weeklyUsed: 44,
+                    weeklyUsed: 0,
                     weeklyReset: now.addingTimeInterval(4 * 86_400 + 7 * 3_600)
                 ),
                 "codex": provider(

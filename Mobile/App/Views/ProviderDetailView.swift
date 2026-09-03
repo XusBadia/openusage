@@ -122,9 +122,11 @@ private struct MetricDetailCard: View {
                 )
             }
             if let reset = metric.resetsAt {
-                Label(MobileFormatting.reset(reset), systemImage: "clock")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                TimelineView(.periodic(from: .now, by: 60)) { context in
+                    Label(MobileFormatting.reset(reset, now: context.date), systemImage: "clock")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
             if metric.values.count > 1 {
                 Divider()

@@ -44,7 +44,9 @@ budgets those refreshes, so expect a widget to be current within roughly 15 to 6
 matching the Mac's five-minute cycle minute for minute.
 
 Relative reset and update times keep two useful units in the app (`1h 20m`). Home Screen widgets use a
-single unit (`1h`) where the same text has much less room.
+single unit (`1h`) where the same text has much less room. Reset countdowns keep advancing between data
+refreshes and remain visible whenever the Mac published a reset deadline, including when a quota is
+still 100% available.
 
 Whichever surface refreshed last writes the App Group cache, and the others render that cache while their
 own read is in flight. A failed read never blanks a widget: it keeps showing the last values it had and
@@ -79,6 +81,8 @@ copy its own settings, so two widgets of the same kind can watch different thing
 - **Provider** — which provider it shows.
 - **Metric** — which metric it leads with. Only metrics kept visible in the app are offered; if the chosen
   one is later hidden, it falls back to the provider's headline metric.
+- The medium size also shows up to two secondary metrics, including each metric's own reset countdown
+  (for example, the weekly reset while Session remains the headline).
 
 **Usage Overview** (medium, large):
 
@@ -92,7 +96,7 @@ copy its own settings, so two widgets of the same kind can watch different thing
 - **Row Detail** — Compact (name and number, so more providers fit), Standard (adds a bar), or Expanded
   (adds that provider's other visible metrics).
 - **Show Title**, **Show Reset Times**, **Show Plan Names** — turn off what you do not need. Reset times
-  need Standard or Expanded to have room.
+  need Standard or Expanded to have room; Expanded also includes resets for the secondary metrics.
 
 ## Local identifiers
 
