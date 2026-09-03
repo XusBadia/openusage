@@ -1,8 +1,7 @@
 import Foundation
-import OSLog
-import UserNotifications
 
 public enum MobileUsageAlertThreshold: Int, Codable, CaseIterable, Hashable, Identifiable, Sendable {
+    case fiftyPercent = 50
     case eightyPercent = 80
     case ninetyPercent = 90
     case ninetyFivePercent = 95
@@ -14,11 +13,52 @@ public enum MobileUsageAlertThreshold: Int, Codable, CaseIterable, Hashable, Ide
 
 public struct MobileProviderNotificationSettings: Codable, Hashable, Sendable {
     public var isEnabled: Bool
-    public var threshold: MobileUsageAlertThreshold
+    public var thresholds: Set<MobileUsageAlertThreshold>
+    public var resetEnabled: Bool
 
-    public init(isEnabled: Bool = true, threshold: MobileUsageAlertThreshold = .eightyPercent) {
+    public init(
+        isEnabled: Bool = true,
+        thresholds: Set<MobileUsageAlertThreshold> = [.eightyPercent],
+        resetEnabled: Bool = true
+    ) {
         self.isEnabled = isEnabled
-        self.threshold = threshold
+        self.thresholds = thresholds
+        self.resetEnabled = resetEnabled
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case isEnabled
+        case thresholds
+        case resetEnabled
+        case threshold
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let decodedThresholds: Set<MobileUsageAlertThreshold>
+        if let thresholds = try container.decodeIfPresent(Set<MobileUsageAlertThreshold>.self, forKey: .thresholds) {
+            decodedThresholds = thresholds
+        } else if let legacyThreshold = try container.decodeIfPresent(
+            MobileUsageAlertThreshold.self,
+            forKey: .threshold
+        ) {
+            decodedThresholds = [legacyThreshold]
+        } else {
+            decodedThresholds = [.eightyPercent]
+        }
+
+        self.init(
+            isEnabled: try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true,
+            thresholds: decodedThresholds,
+            resetEnabled: try container.decodeIfPresent(Bool.self, forKey: .resetEnabled) ?? true
+        )
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(isEnabled, forKey: .isEnabled)
+        try container.encode(thresholds, forKey: .thresholds)
+        try container.encode(resetEnabled, forKey: .resetEnabled)
     }
 }
 
@@ -81,6 +121,7 @@ enum MobileQuotaAlertKind: String, Codable, Hashable, Sendable {
 
 struct MobileQuotaAlert: Equatable, Sendable {
     var kind: MobileQuotaAlertKind
+    var threshold: MobileUsageAlertThreshold?
     var providerID: String
     var metricID: String
     var title: String
@@ -89,7 +130,21 @@ struct MobileQuotaAlert: Equatable, Sendable {
     var windowGeneration: Int
 
     var requestIdentifier: String {
-        "openusage.mobile.\(providerID).\(metricID).\(windowGeneration).\(kind.rawValue)"
+        let event = threshold.map { "threshold.\($0.rawValue)" } ?? kind.rawValue
+        return "openusage.mobile.\(providerID).\(metricID).\(windowGeneration).\(event)"
+    }
+}
+
+struct MobileScheduledReset: Equatable, Sendable {
+    var providerID: String
+    var metricID: String
+    var title: String
+    var subtitle: String
+    var body: String
+    var date: Date
+
+    var requestIdentifier: String {
+        "openusage.mobile.reset.\(providerID).\(metricID)"
     }
 }
 
@@ -97,10 +152,77 @@ struct MobileQuotaNotificationState: Codable, Equatable, Sendable {
     struct Observation: Codable, Equatable, Sendable {
         var resetsAt: Date?
         var lastUsedFraction: Double
-        var threshold: MobileUsageAlertThreshold
-        var thresholdDelivered: Bool
+        var configuredThresholds: Set<MobileUsageAlertThreshold>
+        var deliveredThresholds: Set<MobileUsageAlertThreshold>
         var exhaustedDelivered: Bool
         var windowGeneration: Int
+
+        private enum CodingKeys: String, CodingKey {
+            case resetsAt
+            case lastUsedFraction
+            case configuredThresholds
+            case deliveredThresholds
+            case exhaustedDelivered
+            case windowGeneration
+            case threshold
+            case thresholdDelivered
+        }
+
+        init(
+            resetsAt: Date?,
+            lastUsedFraction: Double,
+            configuredThresholds: Set<MobileUsageAlertThreshold>,
+            deliveredThresholds: Set<MobileUsageAlertThreshold>,
+            exhaustedDelivered: Bool,
+            windowGeneration: Int
+        ) {
+            self.resetsAt = resetsAt
+            self.lastUsedFraction = lastUsedFraction
+            self.configuredThresholds = configuredThresholds
+            self.deliveredThresholds = deliveredThresholds
+            self.exhaustedDelivered = exhaustedDelivered
+            self.windowGeneration = windowGeneration
+        }
+
+        init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            let legacyThreshold = try container.decodeIfPresent(MobileUsageAlertThreshold.self, forKey: .threshold)
+            let configured = try container.decodeIfPresent(
+                Set<MobileUsageAlertThreshold>.self,
+                forKey: .configuredThresholds
+            ) ?? legacyThreshold.map { [$0] } ?? [.eightyPercent]
+            let delivered: Set<MobileUsageAlertThreshold>
+            if let decoded = try container.decodeIfPresent(
+                Set<MobileUsageAlertThreshold>.self,
+                forKey: .deliveredThresholds
+            ) {
+                delivered = decoded
+            } else if try container.decodeIfPresent(Bool.self, forKey: .thresholdDelivered) == true,
+                      let legacyThreshold {
+                delivered = [legacyThreshold]
+            } else {
+                delivered = []
+            }
+
+            self.init(
+                resetsAt: try container.decodeIfPresent(Date.self, forKey: .resetsAt),
+                lastUsedFraction: try container.decode(Double.self, forKey: .lastUsedFraction),
+                configuredThresholds: configured,
+                deliveredThresholds: delivered,
+                exhaustedDelivered: try container.decodeIfPresent(Bool.self, forKey: .exhaustedDelivered) ?? false,
+                windowGeneration: try container.decodeIfPresent(Int.self, forKey: .windowGeneration) ?? 0
+            )
+        }
+
+        func encode(to encoder: any Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encodeIfPresent(resetsAt, forKey: .resetsAt)
+            try container.encode(lastUsedFraction, forKey: .lastUsedFraction)
+            try container.encode(configuredThresholds, forKey: .configuredThresholds)
+            try container.encode(deliveredThresholds, forKey: .deliveredThresholds)
+            try container.encode(exhaustedDelivered, forKey: .exhaustedDelivered)
+            try container.encode(windowGeneration, forKey: .windowGeneration)
+        }
     }
 
     var observations: [String: Observation] = [:]
@@ -141,21 +263,16 @@ enum MobileQuotaNotificationEvaluator {
                     && visibleMetricIDs.contains(metric.id)
 
                 guard var observation = previous.observations[key] else {
-                    next.observations[key] = MobileQuotaNotificationState.Observation(
-                        resetsAt: metric.resetsAt,
-                        lastUsedFraction: used,
-                        threshold: providerSettings.threshold,
-                        thresholdDelivered: false,
-                        exhaustedDelivered: false,
+                    next.observations[key] = makeBaselineObservation(
+                        metric: metric,
+                        used: used,
+                        thresholds: providerSettings.thresholds,
                         windowGeneration: 0
                     )
                     continue
                 }
 
-                let resetAdvanced = resetWindowAdvanced(
-                    current: metric.resetsAt,
-                    previous: observation.resetsAt
-                )
+                let resetAdvanced = resetWindowAdvanced(current: metric.resetsAt, previous: observation.resetsAt)
                 // A few providers omit reset timestamps. A large fall is the safest local signal that
                 // a new quota window started; smaller corrections and top-ups keep the existing dedupe.
                 let inferredReset = metric.resetsAt == nil
@@ -163,49 +280,54 @@ enum MobileQuotaNotificationEvaluator {
                     && observation.lastUsedFraction - used >= 0.5
 
                 if resetAdvanced || inferredReset {
-                    observation = MobileQuotaNotificationState.Observation(
-                        resetsAt: metric.resetsAt,
-                        lastUsedFraction: used,
-                        threshold: providerSettings.threshold,
-                        thresholdDelivered: false,
-                        exhaustedDelivered: false,
+                    observation = makeBaselineObservation(
+                        metric: metric,
+                        used: used,
+                        thresholds: providerSettings.thresholds,
                         windowGeneration: observation.windowGeneration + 1
                     )
                     next.observations[key] = observation
                     continue
                 }
 
-                if observation.threshold != providerSettings.threshold {
-                    // A preference change is a new baseline, never a reason to alert immediately.
-                    observation.threshold = providerSettings.threshold
-                    observation.thresholdDelivered = used >= providerSettings.threshold.usedFraction
-                }
+                let newlySelected = providerSettings.thresholds.subtracting(observation.configuredThresholds)
+                observation.deliveredThresholds.formUnion(newlySelected.filter { used >= $0.usedFraction })
 
+                let crossed = providerSettings.thresholds
+                    .filter { !observation.deliveredThresholds.contains($0) }
+                    .filter { observation.lastUsedFraction < $0.usedFraction && used >= $0.usedFraction }
                 let exhaustedCrossed = observation.lastUsedFraction < 1 && used >= 1
-                let thresholdCrossed = observation.lastUsedFraction < providerSettings.threshold.usedFraction
-                    && used >= providerSettings.threshold.usedFraction
 
-                if canNotify, exhaustedCrossed, !observation.exhaustedDelivered {
-                    alerts.append(alert(
-                        kind: .exhausted,
-                        provider: provider,
-                        metric: metric,
-                        threshold: providerSettings.threshold,
-                        windowGeneration: observation.windowGeneration
-                    ))
+                if exhaustedCrossed, !observation.exhaustedDelivered {
+                    if canNotify {
+                        alerts.append(alert(
+                            kind: .exhausted,
+                            provider: provider,
+                            metric: metric,
+                            threshold: nil,
+                            windowGeneration: observation.windowGeneration
+                        ))
+                    }
                     observation.exhaustedDelivered = true
-                    observation.thresholdDelivered = true
-                } else if canNotify, thresholdCrossed, !observation.thresholdDelivered {
-                    alerts.append(alert(
-                        kind: .threshold,
-                        provider: provider,
-                        metric: metric,
-                        threshold: providerSettings.threshold,
-                        windowGeneration: observation.windowGeneration
-                    ))
-                    observation.thresholdDelivered = true
+                    observation.deliveredThresholds.formUnion(
+                        providerSettings.thresholds.filter { used >= $0.usedFraction }
+                    )
+                } else if !crossed.isEmpty {
+                    if canNotify, let highest = crossed.max(by: { $0.rawValue < $1.rawValue }) {
+                        alerts.append(alert(
+                            kind: .threshold,
+                            provider: provider,
+                            metric: metric,
+                            threshold: highest,
+                            windowGeneration: observation.windowGeneration
+                        ))
+                    }
+                    // One refresh can jump across several milestones. Send only the highest alert, but
+                    // consume every crossed milestone so the next refresh cannot release a burst.
+                    observation.deliveredThresholds.formUnion(crossed)
                 }
 
+                observation.configuredThresholds = providerSettings.thresholds
                 observation.resetsAt = metric.resetsAt ?? observation.resetsAt
                 observation.lastUsedFraction = used
                 next.observations[key] = observation
@@ -213,6 +335,22 @@ enum MobileQuotaNotificationEvaluator {
         }
 
         return Result(alerts: alerts, state: next)
+    }
+
+    private static func makeBaselineObservation(
+        metric: MobileUsageMetric,
+        used: Double,
+        thresholds: Set<MobileUsageAlertThreshold>,
+        windowGeneration: Int
+    ) -> MobileQuotaNotificationState.Observation {
+        MobileQuotaNotificationState.Observation(
+            resetsAt: metric.resetsAt,
+            lastUsedFraction: used,
+            configuredThresholds: thresholds,
+            deliveredThresholds: Set(thresholds.filter { used >= $0.usedFraction }),
+            exhaustedDelivered: used >= 1,
+            windowGeneration: windowGeneration
+        )
     }
 
     private static func resetWindowAdvanced(current: Date?, previous: Date?) -> Bool {
@@ -225,15 +363,17 @@ enum MobileQuotaNotificationEvaluator {
         kind: MobileQuotaAlertKind,
         provider: MobileProviderSnapshot,
         metric: MobileUsageMetric,
-        threshold: MobileUsageAlertThreshold,
+        threshold: MobileUsageAlertThreshold?,
         windowGeneration: Int
     ) -> MobileQuotaAlert {
         let subtitle = "\(provider.displayName) · \(metric.label)"
         switch kind {
         case .threshold:
+            let threshold = threshold ?? .eightyPercent
             let remaining = max(0, 100 - threshold.rawValue)
             return MobileQuotaAlert(
                 kind: kind,
+                threshold: threshold,
                 providerID: provider.providerID,
                 metricID: metric.id,
                 title: threshold.title,
@@ -244,6 +384,7 @@ enum MobileQuotaNotificationEvaluator {
         case .exhausted:
             return MobileQuotaAlert(
                 kind: kind,
+                threshold: nil,
                 providerID: provider.providerID,
                 metricID: metric.id,
                 title: "Limit Reached",
@@ -251,73 +392,6 @@ enum MobileQuotaNotificationEvaluator {
                 body: "No usage remains for this limit.",
                 windowGeneration: windowGeneration
             )
-        }
-    }
-}
-
-/// Schedules the alerts found after an iCloud refresh. The app and WidgetKit use the same actor and App
-/// Group state, while stable request identifiers keep coincident widget refreshes from multiplying an
-/// alert. Authorization is requested only by the containing app after the person opts in.
-public actor MobileQuotaNotificationScheduler {
-    public static let shared = MobileQuotaNotificationScheduler()
-
-    private let logger = Logger(subsystem: "OpenUsageMobileCore", category: "notifications")
-
-    public func evaluateAndSchedule(
-        snapshot: MobileSharedSnapshot,
-        store: MobileSharedSnapshotStore
-    ) async {
-        let settings = store.notificationSettings
-        guard settings.isEnabled else { return }
-
-        let center = UNUserNotificationCenter.current()
-        let authorization = await center.notificationSettings().authorizationStatus
-        guard Self.isAuthorized(authorization) else { return }
-
-        let result = MobileQuotaNotificationEvaluator.evaluate(
-            snapshot: snapshot,
-            displaySettings: store.providerDisplaySettings,
-            settings: settings,
-            previous: store.quotaNotificationState
-        )
-        // Commit before scheduling. App and widget processes may refresh together, and avoiding a
-        // duplicate alert is more useful than retrying the same stale edge after a delivery error.
-        store.quotaNotificationState = result.state
-
-        for alert in result.alerts {
-            let content = UNMutableNotificationContent()
-            content.title = alert.title
-            content.subtitle = alert.subtitle
-            content.body = alert.body
-            content.threadIdentifier = "openusage.mobile.quota"
-            content.userInfo = ["providerID": alert.providerID, "metricID": alert.metricID]
-            if settings.soundEnabled { content.sound = .default }
-
-            do {
-                try await center.add(UNNotificationRequest(
-                    identifier: alert.requestIdentifier,
-                    content: content,
-                    trigger: nil
-                ))
-                logger.info(
-                    "Scheduled \(alert.kind.rawValue, privacy: .public) alert for \(alert.providerID, privacy: .public)"
-                )
-            } catch {
-                logger.error("Failed to schedule quota alert: \(error.localizedDescription, privacy: .public)")
-            }
-        }
-    }
-
-    private static func isAuthorized(_ status: UNAuthorizationStatus) -> Bool {
-        switch status {
-        case .authorized, .provisional:
-            true
-#if os(iOS)
-        case .ephemeral:
-            true
-#endif
-        default:
-            false
         }
     }
 }

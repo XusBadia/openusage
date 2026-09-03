@@ -55,9 +55,13 @@ records the reason in the log.
 ## Usage notifications
 
 **Settings › Usage Alerts** enables local notifications. Permission is requested only after the switch
-is turned on. Each provider can be muted independently and can alert at 80%, 90%, or 95% used. A visible
-quota sends one alert when it crosses that threshold and one more if it is exhausted; both are deduped
-for the quota's reset window.
+is turned on. Each provider can be muted independently and can alert at any combination of 50%, 80%,
+90%, and 95% used. A visible quota sends each selected milestone once per reset window and a separate
+alert if it is exhausted. If one refresh crosses several milestones, only the highest one is shown.
+
+Reset alerts are enabled per provider by default. The app schedules each visible quota's notification
+for the reset time published by the provider, then replaces or cancels it when refreshed data or settings
+change. Turning off the provider, hiding its quota, or disabling notifications removes its pending reset.
 
 The app and its widgets evaluate alerts after a successful iCloud read, so alerts can arrive from a
 WidgetKit background refresh without opening the app. iOS decides when widgets run, so notification

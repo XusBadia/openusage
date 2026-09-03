@@ -178,9 +178,32 @@ final class MobileDashboardStore {
         persistNotificationSettings()
     }
 
-    func setNotificationThreshold(_ threshold: MobileUsageAlertThreshold, for providerID: String) {
-        notificationSettings.updateProvider(providerID) { $0.threshold = threshold }
+    func setNotificationThreshold(
+        _ threshold: MobileUsageAlertThreshold,
+        isEnabled: Bool,
+        for providerID: String
+    ) {
+        notificationSettings.updateProvider(providerID) { settings in
+            if isEnabled {
+                settings.thresholds.insert(threshold)
+            } else {
+                settings.thresholds.remove(threshold)
+            }
+        }
         persistNotificationSettings()
+    }
+
+    func setProviderResetNotifications(_ providerID: String, isEnabled: Bool) {
+        notificationSettings.updateProvider(providerID) { $0.resetEnabled = isEnabled }
+        persistNotificationSettings()
+    }
+
+    func reconcileNotificationSchedule() async {
+        guard let snapshot = sharedStore.load() else { return }
+        await MobileQuotaNotificationScheduler.shared.reconcileScheduledResets(
+            snapshot: snapshot,
+            store: sharedStore
+        )
     }
 
     func setProvider(_ providerID: String, isVisible: Bool) {
@@ -275,11 +298,24 @@ final class MobileDashboardStore {
 
     private func persistProviderDisplaySettings() {
         sharedStore.providerDisplaySettings = providerDisplaySettings
+        reconcileNotificationScheduleFromCache()
         WidgetCenter.shared.reloadAllTimelines()
     }
 
     private func persistNotificationSettings() {
         sharedStore.notificationSettings = notificationSettings
+        reconcileNotificationScheduleFromCache()
+    }
+
+    private func reconcileNotificationScheduleFromCache() {
+        guard let snapshot = sharedStore.load() else { return }
+        let sharedStore = sharedStore
+        Task {
+            await MobileQuotaNotificationScheduler.shared.reconcileScheduledResets(
+                snapshot: snapshot,
+                store: sharedStore
+            )
+        }
     }
 
     private static func resolveDevices(

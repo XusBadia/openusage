@@ -100,7 +100,7 @@ struct SettingsView: View {
 
                 Text(
                     "Alerts are checked when OpenUsage or one of its widgets refreshes iCloud. "
-                        + "Each quota alerts once at your chosen threshold and again if it is exhausted."
+                        + "Each visible quota alerts at the milestones you choose, when exhausted, and when it resets."
                 )
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -189,6 +189,9 @@ struct SettingsView: View {
 
     private func refreshNotificationAuthorization() async {
         notificationAuthorization = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+        if notificationsAreAuthorized {
+            await store.reconcileNotificationSchedule()
+        }
     }
 }
 
@@ -208,17 +211,35 @@ private struct NotificationProviderSettingsView: View {
                             set: { store.setProviderNotifications(provider.providerID, isEnabled: $0) }
                         )
                     )
-                    Picker(
-                        "Notify At",
-                        selection: Binding(
-                            get: { store.notificationSettings(for: provider.providerID).threshold },
-                            set: { store.setNotificationThreshold($0, for: provider.providerID) }
+                    ForEach(MobileUsageAlertThreshold.allCases) { threshold in
+                        Toggle(
+                            threshold.title,
+                            isOn: Binding(
+                                get: {
+                                    store.notificationSettings(for: provider.providerID)
+                                        .thresholds.contains(threshold)
+                                },
+                                set: {
+                                    store.setNotificationThreshold(
+                                        threshold,
+                                        isEnabled: $0,
+                                        for: provider.providerID
+                                    )
+                                }
+                            )
                         )
-                    ) {
-                        ForEach(MobileUsageAlertThreshold.allCases) { threshold in
-                            Text(threshold.title).tag(threshold)
-                        }
+                        .disabled(!settings.isEnabled)
                     }
+
+                    Toggle(
+                        "Quota Reset",
+                        isOn: Binding(
+                            get: { store.notificationSettings(for: provider.providerID).resetEnabled },
+                            set: {
+                                store.setProviderResetNotifications(provider.providerID, isEnabled: $0)
+                            }
+                        )
+                    )
                     .disabled(!settings.isEnabled)
                 } header: {
                     Label {
@@ -227,7 +248,7 @@ private struct NotificationProviderSettingsView: View {
                         ProviderIconView(providerID: provider.providerID, size: 22)
                     }
                 } footer: {
-                    Text("Also alerts if a visible quota reaches its limit.")
+                    Text("The 100% limit alert is always included. Reset alerts arrive at the provider's published reset time.")
                 }
             }
         }
